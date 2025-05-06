@@ -2,12 +2,20 @@ const express = require('express')
 const HTTP_STATUS = require('../helpers/http-status');
 const Response = require('../helpers/response');
 const Model = require('../models/users');
+const Player = require('../models/players'); // Add this line
 const bcrypt = require('bcrypt');
 
 class User {
     createNewUser = async (req,res) => {
         const {firstName, lastName , email, password} = req.body;
         try {
+            const existingUser = await Model.findOne({ email });
+            if (existingUser) {
+                return Response.createSucessResponse(res, HTTP_STATUS.CONFLICT, { 
+                    message: "User with this email already exists" 
+                });
+            }
+
             const hashedpassword = await bcrypt.hash(password,10);
             const newUserToInsert = new Model({
                 firstName,
@@ -16,7 +24,24 @@ class User {
                 password:hashedpassword,
             });
             const savedUser = await newUserToInsert.save();
-           Response.createSucessResponse(res,HTTP_STATUS.SUCCESS, {user:savedUser});
+
+            // Create a corresponding player record
+            const player = new Player({
+                name: `${firstName} ${lastName}`.trim(),
+                rating: 1200,
+                user: savedUser._id
+            });
+            await player.save();
+
+            const userResponse = {
+                _id: savedUser._id,
+                firstName: savedUser.firstName,
+                lastName: savedUser.lastName,
+                email: savedUser.email,
+                rating: 1200,
+                playerId: player._id // Add the player ID to the response
+            };
+            Response.createSucessResponse(res,HTTP_STATUS.SUCCESS, {user: userResponse});
         } catch (error) {
             Response.createInternalErrorResponse(res,error);
         }
@@ -29,12 +54,20 @@ class User {
             if(!user) {
                return Response.createNotFoundResponse(res);
             }
-            const passwordMatch = await bcrypt.compare(password,user.password) 
+            const passwordMatch = await bcrypt.compare(password, user.password);
 
             if(!passwordMatch) {
                return Response.createUnauthorizedResponse(res);
             }
-           Response.createSucessResponse(res, HTTP_STATUS.SUCCESS, { user});
+
+            const userWithoutPassword = {
+                _id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                rating: user.rating || 1200
+            };
+            Response.createSucessResponse(res, HTTP_STATUS.SUCCESS, { user: userWithoutPassword });
         } catch (error) {
             Response.createInternalErrorResponse(res, error);
         }

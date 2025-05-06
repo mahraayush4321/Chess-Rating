@@ -5,6 +5,14 @@ const CONST = require('./src/helpers/constants');
 const loadRoutes = require('./src/routes')
 const cronJob = require('./src/helpers/cronJob');
 const app = express();
+const cors = require('cors');
+
+app.use(cors());
+
+app.use(cors({
+    origin: 'http://localhost:5173', 
+    credentials: true
+}))
 
 require('dotenv').config();
 app.use(express.json());

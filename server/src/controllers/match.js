@@ -31,9 +31,7 @@ class Matchplayer {
 
             p1.matches.push(match._id);
             p2.matches.push(match._id);
-
-            await p1.save();
-            await p2.save();
+            await Promise.all([p1.save(), p2.save()]);
             
             res.status(201).json({ message: 'Match saved', match });
         } catch (err) {
@@ -140,25 +138,39 @@ class Matchplayer {
         }
     }
 
-    suggestOpponents = async (req, res) => {
+     findSuitableOpponents = async (req, res) => {
         try {
-            const { id } = req.params;
-            const range = Number(req.query.range) || 1000;
-    
-            const player = await Player.findById(id);
-            if (!player) {
-                return res.status(404).json({ message: 'Player not found' });
+            const { userId } = req.params;
+            const currentPlayer = await Player.findById(userId);
+            
+            if (!currentPlayer) {
+                return res.status(404).json({ error: 'Player not found' });
             }
-            const opponents = await Player.find({
-                _id: { $ne: id },
-                rating: { $gte: player.rating - range, $lte: player.rating + range },
-            }).select('name rating');
     
-            res.status(200).json({ suggestedOpponents: opponents });
+            const currentRating = currentPlayer.rating;
+            
+            const suitableOpponents = await Player.find({
+                _id: { $ne: userId },
+                rating: { 
+                    $gte: currentRating - 50,
+                    $lte: currentRating + 100
+                }
+            }).select('name rating country');
+    
+            res.status(200).json({ 
+                currentRating,
+                suitableOpponents: suitableOpponents.map(opponent => ({
+                    id: opponent._id,
+                    name: opponent.name,
+                    rating: opponent.rating,
+                    country: opponent.country,
+                    ratingDifference: Math.abs(opponent.rating - currentRating) 
+                }))
+            });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
-    };
+    };    
 }
 
 
