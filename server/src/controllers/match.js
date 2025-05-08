@@ -171,7 +171,140 @@ class Matchplayer {
             res.status(500).json({ error: error.message });
         }
     };    
-}
 
+    findMatch = async (req, res) => {
+        try {
+            const { playerId } = req.body;
+            
+            if (!playerId) {
+                return res.status(400).json({ error: 'Player ID is required' });
+            }
+
+            const player = await Player.findById(playerId);
+            
+            if (!player) {
+                return res.status(404).json({ error: 'Player not found' });
+            }
+
+            console.log(`Player ${player.name} searching for match`); // Add logging
+
+            // Update player's searching status
+            player.isSearchingMatch = true;
+            player.lastSearchStarted = new Date();
+            await player.save();
+
+            // Find suitable opponent who is also searching
+            const opponent = await Player.findOne({
+                _id: { $ne: playerId },
+                isSearchingMatch: true,
+                rating: {
+                    $gte: player.rating - 50,
+                    $lte: player.rating + 100
+                }
+            }).sort({ lastSearchStarted: 1 });
+
+            if (opponent) {
+                console.log(`Match found between ${player.name} and ${opponent.name}`); // Add logging
+                
+                // Create match and update both players
+                const match = new Match({
+                    player1: playerId,
+                    player2: opponent._id,
+                    result: 'ongoing',
+                    datePlayed: new Date(),
+                    matchType: 'ranked'
+                });
+                await match.save();
+
+                // Reset searching status for both players
+                player.isSearchingMatch = false;
+                opponent.isSearchingMatch = false;
+                await Promise.all([player.save(), opponent.save()]);
+
+                return res.status(200).json({
+                    status: 'matched',
+                    match,
+                    opponent: {
+                        id: opponent._id,
+                        name: opponent.name,
+                        rating: opponent.rating
+                    }
+                });
+            }
+
+            // No immediate match found
+            return res.status(200).json({
+                status: 'searching'
+            });
+        } catch (error) {
+            console.error('Error in findMatch:', error); // Add logging
+            res.status(500).json({ error: error.message });
+        }
+    };
+
+    cancelMatchSearch = async (req, res) => {
+        try {
+            const { playerId } = req.body;
+            
+            if (!playerId) {
+                return res.status(400).json({ error: 'Player ID is required' });
+            }
+
+            const player = await Player.findById(playerId);
+            if (!player) {
+                return res.status(404).json({ error: 'Player not found' });
+            }
+
+            player.isSearchingMatch = false;
+            player.lastSearchStarted = null;
+            await player.save();
+
+            res.status(200).json({ message: 'Search cancelled' });
+        } catch (error) {
+            console.error('Error in cancelMatchSearch:', error); // Add logging
+            res.status(500).json({ error: error.message });
+        }
+    };
+    acceptMatch = async (req, res) => {
+        try {
+            const { matchId, playerId } = req.body;
+            
+            if (!matchId || !playerId) {
+                return res.status(400).json({ error: 'Match ID and Player ID are required' });
+            }
+
+            const match = await Match.findById(matchId);
+            if (!match) {
+                return res.status(404).json({ error: 'Match not found' });
+            }
+
+            // Verify the player is part of this match
+            if (match.player1.toString() !== playerId && match.player2.toString() !== playerId) {
+                return res.status(403).json({ error: 'Player is not part of this match' });
+            }
+
+            // Update match status
+            match.status = 'accepted';
+            await match.save();
+
+            // Get opponent details
+            const opponentId = match.player1.toString() === playerId ? match.player2 : match.player1;
+            const opponent = await Player.findById(opponentId);
+
+            res.status(200).json({
+                message: 'Match accepted',
+                match,
+                opponent: {
+                    id: opponent._id,
+                    name: opponent.name,
+                    rating: opponent.rating
+                }
+            });
+        } catch (error) {
+            console.error('Error in acceptMatch:', error);
+            res.status(500).json({ error: error.message });
+        }
+    };
+}
 
 module.exports = new Matchplayer();

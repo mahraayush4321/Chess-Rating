@@ -14,8 +14,14 @@ class Player {
 
     addPlayer = async (req,res) => {
         try {
+            const userId = req.user._id;
             const { name } = req.body;
-            const newPlayer = new playerModel({ name });
+            
+            const newPlayer = new playerModel({
+                _id: userId,
+                name,
+                userId
+            });
             await newPlayer.save();
             Response.createSucessResponse(res, HTTP_STATUS.SUCCESS, {player: newPlayer});
         } catch (err) {

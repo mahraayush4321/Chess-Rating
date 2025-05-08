@@ -4,8 +4,10 @@ import { Button } from "../../components/ui/button";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { authService } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 const LoginPage = () => {
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
@@ -25,8 +27,8 @@ const LoginPage = () => {
         console.log('Login response:', responseData);
         
         if (responseData.data && responseData.data.user) {
-          localStorage.setItem('user', JSON.stringify(responseData.data.user));
-          navigate('/addMatches/addMatch');
+          login(responseData.data.user); // Use auth context login
+          navigate('/home');
         } else {
           setError('Invalid response from server');
           console.error('Invalid response structure:', responseData);

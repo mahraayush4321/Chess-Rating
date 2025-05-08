@@ -2,9 +2,18 @@ const mongoose = require("mongoose");
 
 const playerSchema = new mongoose.Schema(
   {
+    _id: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true
+    },
     name: {
       type: String,
       required: true,
+    },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'users',
+      required: true
     },
     rating: {
       type: Number,
@@ -47,8 +56,16 @@ const playerSchema = new mongoose.Schema(
         maxlength: 300
     },
     followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Player' }],
-    following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Player' }]
-  },{timestamps: { createdAt: "createdAt", updatedAt: "lastUpdatedAt" },versionKey: false}
+    following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Player' }],
+    isSearchingMatch: {
+      type: Boolean,
+      default: false
+    },
+    lastSearchStarted: {
+      type: Date,
+      default: null
+    } 
+  }
 );
 
 module.exports = mongoose.model("Player", playerSchema);

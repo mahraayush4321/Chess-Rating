@@ -25,11 +25,11 @@ class User {
             });
             const savedUser = await newUserToInsert.save();
 
-            // Create a corresponding player record
             const player = new Player({
+                _id: savedUser._id, 
                 name: `${firstName} ${lastName}`.trim(),
-                rating: 1200,
-                user: savedUser._id
+                userId: savedUser._id,
+                rating: 1200
             });
             await player.save();
 
@@ -38,8 +38,7 @@ class User {
                 firstName: savedUser.firstName,
                 lastName: savedUser.lastName,
                 email: savedUser.email,
-                rating: 1200,
-                playerId: player._id // Add the player ID to the response
+                rating: 1200
             };
             Response.createSucessResponse(res,HTTP_STATUS.SUCCESS, {user: userResponse});
         } catch (error) {

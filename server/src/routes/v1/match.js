@@ -10,6 +10,11 @@ router.get('/:id/stats', match.getPlayerStats);
 router.get('/leaderboard', match.getLeaderBoard);
 router.get('/getTopWinning', match.getTopWinningPlayers); 
 router.get('/:userId/suitable-opponents', match.findSuitableOpponents);
-router.get('/player/:userId/suitable-opponents', match.findSuitableOpponents);
+
+// New matchmaking routes
+// Update the route paths to be more RESTful
+router.post('/findMatch', match.findMatch);
+router.post('/cancelMatch', match.cancelMatchSearch);
+router.post('/acceptMatch', match.acceptMatch);
 
 module.exports = router;

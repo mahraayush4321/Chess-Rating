@@ -4,8 +4,10 @@ import { Button } from "../../components/ui/button";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { authService } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 const SignupPage = () => {
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     firstName: '',
@@ -24,8 +26,8 @@ const SignupPage = () => {
 
       if (response.ok) {
         const data = await response.json();
-        localStorage.setItem('user', JSON.stringify(data.user));
-        navigate('/addMatches/addMatch');
+        login(data.user); // Use auth context login
+        navigate('/home');
       } else {
         const errorData = await response.json();
         setError(errorData.message || 'Failed to create account. Please try again.');
