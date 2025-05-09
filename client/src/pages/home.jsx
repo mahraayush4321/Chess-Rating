@@ -34,7 +34,7 @@ const AddMatch = () => {
     // Initialize socket connection
     console.log("Initializing socket connection...");
     
-    socketRef.current = io('http://localhost:', {
+    socketRef.current = io('https://chess-rating.onrender.com', {
       transports: ['polling'],
       withCredentials: true,
     });
