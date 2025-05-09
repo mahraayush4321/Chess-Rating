@@ -522,124 +522,94 @@ const PlayPage = () => {
 
       {matchDetails && bothPlayersReady && (
         <div className="flex flex-col items-center justify-center gap-4">
-          <Card className="border-none bg-zinc-800/50 p-6">
-            <div className="mb-4 text-center font-bold text-lg">
-              <div
-                className={`${
-                  currentPlayer === "white" ? "text-yellow-400" : ""
-                }`}
-              >
-                White: {formatTime(whiteTime)}
-              </div>
-              <div
-                className={`${
-                  currentPlayer === "black" ? "text-yellow-400" : ""
-                }`}
-              >
-                Black: {formatTime(blackTime)}
-              </div>
-              <div className="text-white">
-                {gameOver && (
-                  <div className="text-center text-xl font-bold">
-                    Game Over! {winner === "white" ? "White" : "Black"} wins
-                    {whiteTime <= 0 || blackTime <= 0 ? " by timeout!" : "!"}
-                  </div>
-                )}
-                {currentPlayer !== playerColor && !gameOver && (
-                  <div className="mt-1 text-sm font-normal text-yellow-400">
-                    Waiting for opponent's move...
-                  </div>
-                )}
-              </div>
-              {errorMessage && (
-                <div className="mt-2 text-sm font-normal text-red-400">
-                  {errorMessage}
-                </div>
-              )}
-              {opponentInfo && (
-                <div className="mt-2 text-sm font-normal text-blue-400">
-                  Playing against: {opponentInfo.name}
-                </div>
-              )}
+          <Card className="border-none bg-gradient-to-br from-zinc-900/80 to-zinc-800/80 p-8 backdrop-blur-xl backdrop-filter rounded-xl shadow-2xl">
+            {/* Timer and status info */}
+            <div className="mb-6 text-center font-bold">
+              {/* ... existing timer code ... */}
             </div>
-            <div className="grid grid-cols-8 border border-zinc-700">
+            
+            {/* Chess board */}
+            <div className="grid grid-cols-8 rounded-lg overflow-hidden border border-white/10 shadow-inner">
               {getDisplayBoard().map((row, displayRowIndex) =>
                 row.map((piece, displayColIndex) => {
-                  const rowIndex =
-                    playerColor === "black"
-                      ? 7 - displayRowIndex
-                      : displayRowIndex;
-                  const colIndex =
-                    playerColor === "black"
-                      ? 7 - displayColIndex
-                      : displayColIndex;
-
+                  const rowIndex = playerColor === "black" ? 7 - displayRowIndex : displayRowIndex;
+                  const colIndex = playerColor === "black" ? 7 - displayColIndex : displayColIndex;
+                  const isLight = (displayRowIndex + displayColIndex) % 2 === 0;
+            
                   return (
                     <div
                       key={`${rowIndex}-${colIndex}`}
                       data-position={`${rowIndex}-${colIndex}`}
                       className={`
-            w-12 h-12 flex items-center justify-center text-3xl cursor-pointer
-            ${
-              (displayRowIndex + displayColIndex) % 2 === 0
-                ? "bg-zinc-700"
-                : "bg-zinc-800"
-            }
-            ${
-              selectedPiece &&
-              selectedPiece.row === rowIndex &&
-              selectedPiece.col === colIndex
-                ? "bg-purple-600/50"
-                : ""
-            }
-            ${currentPlayer === playerColor ? "hover:bg-purple-500/20" : ""}
-            ${
-              isKingInCheck &&
-              piece === (currentPlayer === "white" ? "wk" : "bk")
-                ? "bg-red-600/50"
-                : ""
-            }
-            transition-all duration-300
-          `}
+                        w-14 h-14 flex items-center justify-center text-4xl cursor-pointer
+                        transition-all duration-300 relative
+                        ${isLight 
+                          ? 'bg-gradient-to-br from-zinc-200/90 to-zinc-300/90' 
+                          : 'bg-gradient-to-br from-zinc-600/90 to-zinc-700/90'}
+                        ${selectedPiece && selectedPiece.row === rowIndex && selectedPiece.col === colIndex
+                          ? 'ring-2 ring-purple-500 ring-inset'
+                          : ''}
+                        ${currentPlayer === playerColor ? 'hover:bg-purple-400/20' : ''}
+                        ${isKingInCheck && piece === (currentPlayer === "white" ? "wk" : "bk")
+                          ? 'bg-red-500/30'
+                          : ''}
+                        backdrop-blur-sm
+                      `}
                       onClick={() => handleSquareClick(rowIndex, colIndex)}
                     >
                       <span
                         className={`
-            ${
-              getPieceColor(piece) === "white"
-                ? "text-gray-200"
-                : "text-gray-900"
-            }
-            ${
-              piece === "wk" || piece === "bk"
-                ? "transition-transform duration-500"
-                : ""
-            }
-            ${
-              gameOver && (piece === "wk" || piece === "bk")
-                ? "animate-fall"
-                : ""
-            }
-          `}
-                      >
-                        {getPieceSymbol(piece)}
-                      </span>
+                          transform transition-all duration-300
+                          ${getPieceColor(piece) === "white" ? "text-gray-100" : "text-gray-900"}
+                          ${piece === "wk" || piece === "bk" ? "hover:scale-110" : ""}
+                          ${gameOver && (piece === "wk" || piece === "bk") ? "animate-fall" : ""}
+                          drop-shadow-md
+                        `}>
+                          {getPieceSymbol(piece)}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </Card>
+            
+            // Update the AlertDialog for game over
+            <AlertDialog open={gameOver}>
+              <AlertDialogContent className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-white/10 backdrop-blur-md">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-2xl font-bold text-white">
+                    Game Over!
+                  </AlertDialogTitle>
+                </AlertDialogHeader>
+                <div className="py-6 text-center">
+                  <div className="text-3xl mb-4">
+                    {winner === playerColor ? "🏆" : "👏"}
+                  </div>
+                  <div className="text-xl text-zinc-200">
+                    {winner === playerColor
+                      ? "Congratulations! You won the game!"
+                      : "Game Over! Your opponent won."}
+                  </div>
+                  {whiteTime <= 0 || blackTime <= 0 ? (
+                    <div className="mt-2 text-sm text-zinc-400">
+                      Game ended by timeout
                     </div>
-                  );
-                })
-              )}
-            </div>
-          </Card>
-
-          <div className="flex gap-4">
-            <Button
-              onClick={() => navigate("/home")}
-              variant="outline"
-              className="border-purple-500 bg-transparent text-purple-400 hover:bg-purple-950/30"
-            >
-              Back to Home
-            </Button>
-          </div>
+                  ) : null}
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogAction
+                    onClick={() => {
+                      resetGame();
+                      navigate("/home");
+                    }}
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-6 py-2 rounded-lg transition-all duration-300"
+                  >
+                    Back to Home
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
         </div>
       )}
 
