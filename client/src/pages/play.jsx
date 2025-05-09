@@ -61,6 +61,17 @@ const PlayPage = () => {
       });
     });
 
+    // Add these new event listeners
+    newSocket.on('bothPlayersReady', (data) => {
+      console.log('Both players ready:', data);
+      setBothPlayersReady(true);
+    });
+
+    newSocket.on('opponentMove', (data) => {
+      console.log('Opponent move received:', data);
+      handleOpponentMove(data.from, data.to);
+    });
+
     // Add connection error handler
     newSocket.on('connect_error', (error) => {
       console.error('Connection error:', error);
