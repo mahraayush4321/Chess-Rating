@@ -220,6 +220,44 @@ const initSocketHandlers = (io) => {
         });
       }
     });
+    socket.on('joinMatch', async (data) => {
+      const { matchId, roomId, playerId } = data;
+      console.log(`Player ${playerId} joining match ${matchId} in room ${roomId}`);
+      
+      try {
+        // Join the room
+        await socket.join(roomId);
+        
+        // Find the match
+        const match = await Match.findById(matchId);
+        if (!match) {
+          return socket.emit('matchError', { message: 'Match not found' });
+        }
+        
+        // Get player details
+        const player = await Player.findById(playerId);
+        const opponent = await Player.findById(
+          match.player1.toString() === playerId ? match.player2 : match.player1
+        );
+        
+        // Send match details to the player
+        socket.emit('matchFound', {
+          matchId,
+          roomId,
+          color: match.player1.toString() === playerId ? 'white' : 'black',
+          opponent: {
+            id: opponent._id,
+            name: opponent.name,
+            rating: opponent.rating
+          }
+        });
+        
+        console.log(`Player ${player.name} successfully joined match ${matchId}`);
+      } catch (error) {
+        console.error('Error joining match:', error);
+        socket.emit('matchError', { message: 'Failed to join match' });
+      }
+    });
   });
 };
 
@@ -348,44 +386,7 @@ async function findMatchForPlayer(socket, player) {
   }
 }
 
-// Add this to your socket event handlers
-socket.on('joinMatch', async (data) => {
-  const { matchId, roomId, playerId } = data;
-  console.log(`Player ${playerId} joining match ${matchId} in room ${roomId}`);
-  
-  try {
-    // Join the room
-    await socket.join(roomId);
-    
-    // Find the match
-    const match = await Match.findById(matchId);
-    if (!match) {
-      return socket.emit('matchError', { message: 'Match not found' });
-    }
-    
-    // Get player details
-    const player = await Player.findById(playerId);
-    const opponent = await Player.findById(
-      match.player1.toString() === playerId ? match.player2 : match.player1
-    );
-    
-    // Send match details to the player
-    socket.emit('matchFound', {
-      matchId,
-      roomId,
-      color: match.player1.toString() === playerId ? 'white' : 'black',
-      opponent: {
-        id: opponent._id,
-        name: opponent.name,
-        rating: opponent.rating
-      }
-    });
-    
-    console.log(`Player ${player.name} successfully joined match ${matchId}`);
-  } catch (error) {
-    console.error('Error joining match:', error);
-    socket.emit('matchError', { message: 'Failed to join match' });
-  }
-});
+// Move joinMatch handler inside connection scope
+
 
 module.exports = initSocketHandlers;
