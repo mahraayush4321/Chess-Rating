@@ -24,9 +24,8 @@ const PlayPage = () => {
   const [isSearching, setIsSearching] = useState(false);
   
   useEffect(() => {
-    // Initialize socket connection
-    const newSocket = io("https://chess-rating.onrender.com", {
-      transports: ["polling", "websocket"],
+    const newSocket = io('https://chess-rating.onrender.com',{
+      transports: ['polling'],
       withCredentials: true,
     });
     setSocket(newSocket);
