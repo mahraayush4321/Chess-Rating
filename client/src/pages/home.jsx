@@ -32,7 +32,10 @@ const AddMatch = () => {
     }
 
     // Initialize socket connection
-    socketRef.current = io('http://localhost:4000'); // Update with your server URL
+    socketRef.current = io('https://chess-rating.onrender.com', {
+      transports: ['websocket'], // enforce WebSocket
+      withCredentials: true,
+    });
     
     // Socket event listeners
     socketRef.current.on('connect', () => {
