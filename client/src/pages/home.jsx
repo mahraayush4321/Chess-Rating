@@ -32,49 +32,16 @@ const AddMatch = () => {
     }
 
     // Initialize socket connection
-    console.log("Initializing socket connection...");
-    
     socketRef.current = io('https://chess-rating.onrender.com', {
       transports: ['polling'],
       withCredentials: true,
     });
     
-    // Connection events
+    // Socket event listeners
     socketRef.current.on('connect', () => {
-      console.log('Connected to matchmaking server:', socketRef.current.id);
-      setConnectionStatus('connected');
-      setError(null);
+      console.log('Connected to matchmaking server');
     });
     
-    socketRef.current.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
-      setConnectionStatus('error');
-      setError(`Connection error: ${error.message}. Please try again.`);
-    });
-    
-    socketRef.current.on('disconnect', (reason) => {
-      console.log('Socket disconnected:', reason);
-      setConnectionStatus('disconnected');
-      
-      // Show user-friendly error if disconnected during important operations
-      if (isSearching || matchStatus === 'matched') {
-        setError("Connection lost. Attempting to reconnect...");
-      }
-    });
-    
-    socketRef.current.on('reconnect', (attemptNumber) => {
-      console.log(`Socket reconnected after ${attemptNumber} attempts`);
-      setConnectionStatus('connected');
-      setError(null);
-    });
-    
-    socketRef.current.on('reconnect_failed', () => {
-      console.error('Socket reconnection failed');
-      setConnectionStatus('failed');
-      setError("Failed to connect to the server. Please refresh the page.");
-    });
-    
-    // Match events
     socketRef.current.on('matchmaking', (data) => {
       console.log('Matchmaking status:', data);
       setMatchStatus(data.status);
@@ -111,37 +78,9 @@ const AddMatch = () => {
       window.location.href = `/play?matchId=${data.matchId}&roomId=${data.roomId}`;
     });
 
-    // Send heartbeat every 30 seconds to keep connection alive
-    const heartbeatInterval = setInterval(() => {
-      if (socketRef.current && socketRef.current.connected) {
-        socketRef.current.emit('heartbeat');
-        console.log('Heartbeat sent');
-      }
-    }, 30000);
-
     // Cleanup on component unmount
     return () => {
-      clearInterval(heartbeatInterval);
-      
       if (socketRef.current) {
-        console.log('Cleaning up socket connection');
-        
-        // Remove all listeners to prevent memory leaks
-        socketRef.current.off('connect');
-        socketRef.current.off('disconnect');
-        socketRef.current.off('connect_error');
-        socketRef.current.off('reconnect');
-        socketRef.current.off('reconnect_failed');
-        socketRef.current.off('matchmaking');
-        socketRef.current.off('matchFound');
-        socketRef.current.off('matchError');
-        socketRef.current.off('bothPlayersReady');
-        
-        // Cancel matchmaking if active
-        if (isSearching) {
-          socketRef.current.emit('cancelMatchmaking');
-        }
-        
         socketRef.current.disconnect();
       }
     };
