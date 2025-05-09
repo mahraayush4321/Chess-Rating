@@ -22,6 +22,8 @@ const PlayPage = () => {
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [bothPlayersReady, setBothPlayersReady] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [isKingInCheck, setIsKingInCheck] = useState(false);
+  
   
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -166,6 +168,39 @@ const PlayPage = () => {
     setCurrentPlayer(prev => prev === 'white' ? 'black' : 'white');
   };
   
+  // Add these new states
+  
+  // Add this function to check if a king is in check
+  const isKingUnderAttack = (boardState, kingColor) => {
+    // Find king's position
+    let kingRow, kingCol;
+    const kingPiece = kingColor === 'white' ? 'wk' : 'bk';
+    
+    for (let i = 0; i < 8; i++) {
+      for (let j = 0; j < 8; j++) {
+        if (boardState[i][j] === kingPiece) {
+          kingRow = i;
+          kingCol = j;
+          break;
+        }
+      }
+    }
+    
+    // Check if any opponent piece can attack the king
+    for (let i = 0; i < 8; i++) {
+      for (let j = 0; j < 8; j++) {
+        const piece = boardState[i][j];
+        if (piece && getPieceColor(piece) !== kingColor) {
+          if (isValidMove(boardState, i, j, kingRow, kingCol, getPieceColor(piece))) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  };
+  
+  // Modify handleSquareClick to include check validation
   const handleSquareClick = (row, col) => {
     // Don't allow moves if game is over or not the player's turn
     if (gameOver || currentPlayer !== playerColor || !bothPlayersReady) return;
@@ -201,14 +236,22 @@ const PlayPage = () => {
     }
     
     // Second click - attempt to move
+    // Inside handleSquareClick, update the move validation section:
     if (selectedPiece) {
       if (isValidMove(board, selectedPiece.row, selectedPiece.col, row, col, currentPlayer)) {
         const newBoard = [...board.map(row => [...row])];
         const capturedPiece = newBoard[row][col];
         
-        // Move piece
+        // Make temporary move
         newBoard[row][col] = selectedPiece.piece;
         newBoard[selectedPiece.row][selectedPiece.col] = '';
+        
+        // Check if this move would leave/put own king in check
+        if (isKingUnderAttack(newBoard, currentPlayer)) {
+          setErrorMessage("Invalid move: This would put your king in check!");
+          setSelectedPiece(null);
+          return;
+        }
         
         // Emit move to opponent through socket
         if (socket && matchDetails) {
@@ -224,6 +267,12 @@ const PlayPage = () => {
           setGameOver(true);
           setWinner(currentPlayer);
           
+          // Add blood animation class to the captured square
+          const square = document.querySelector(`[data-position="${row}-${col}"]`);
+          if (square) {
+            square.classList.add('king-death');
+          }
+          
           // Emit match result
           if (socket && matchDetails) {
             const currentUser = JSON.parse(localStorage.getItem('user'));
@@ -236,10 +285,19 @@ const PlayPage = () => {
             });
           }
         }
-
+    
         // Update board and game state
         setBoard(newBoard);
         setSelectedPiece(null);
+        
+        // Check if opponent's king is in check after move
+        const oppositeColor = currentPlayer === 'white' ? 'black' : 'white';
+        const isCheck = isKingUnderAttack(newBoard, oppositeColor);
+        setIsKingInCheck(isCheck);
+        if (isCheck) {
+          setErrorMessage(`${oppositeColor === 'white' ? 'White' : 'Black'} king is in check!`);
+        }
+        
         setCurrentPlayer(currentPlayer === 'white' ? 'black' : 'white');
       } else {
         // Invalid move
@@ -267,6 +325,14 @@ const PlayPage = () => {
     setWinner(null);
     setBothPlayersReady(false);
     setIsPlayerReady(false);
+  };
+
+  const getDisplayBoard = () => {
+    if (playerColor === 'black') {
+      // Reverse the board for black player
+      return [...board].reverse().map(row => [...row].reverse());
+    }
+    return board;
   };
   
   // Render different states based on game progress
@@ -365,25 +431,37 @@ const PlayPage = () => {
               )}
             </div>
             <div className="grid grid-cols-8 border border-zinc-700">
-              {board.map((row, rowIndex) => (
-                row.map((piece, colIndex) => (
-                  <div
-                    key={`${rowIndex}-${colIndex}`}
-                    className={`
-                      w-12 h-12 flex items-center justify-center text-3xl cursor-pointer
-                      ${(rowIndex + colIndex) % 2 === 0 ? 'bg-zinc-700' : 'bg-zinc-800'}
-                      ${selectedPiece && selectedPiece.row === rowIndex && selectedPiece.col === colIndex ? 'bg-purple-600/50' : ''}
-                      ${currentPlayer === playerColor ? 'hover:bg-purple-500/20' : ''}
-                    `}
-                    onClick={() => handleSquareClick(rowIndex, colIndex)}
-                  >
-                    <span className={getPieceColor(piece) === 'white' ? 'text-gray-200' : 'text-gray-900'}>
-                      {getPieceSymbol(piece)}
-                    </span>
-                  </div>
-                ))
-              ))}
-            </div>
+  {getDisplayBoard().map((row, displayRowIndex) => (
+    row.map((piece, displayColIndex) => {
+      const rowIndex = playerColor === 'black' ? 7 - displayRowIndex : displayRowIndex;
+      const colIndex = playerColor === 'black' ? 7 - displayColIndex : displayColIndex;
+      
+      return (
+        <div
+          key={`${rowIndex}-${colIndex}`}
+          data-position={`${rowIndex}-${colIndex}`}
+          className={`
+            w-12 h-12 flex items-center justify-center text-3xl cursor-pointer
+            ${(displayRowIndex + displayColIndex) % 2 === 0 ? 'bg-zinc-700' : 'bg-zinc-800'}
+            ${selectedPiece && selectedPiece.row === rowIndex && selectedPiece.col === colIndex ? 'bg-purple-600/50' : ''}
+            ${currentPlayer === playerColor ? 'hover:bg-purple-500/20' : ''}
+            ${isKingInCheck && piece === (currentPlayer === 'white' ? 'wk' : 'bk') ? 'bg-red-600/50' : ''}
+            transition-all duration-300
+          `}
+          onClick={() => handleSquareClick(rowIndex, colIndex)}
+        >
+          <span className={`
+            ${getPieceColor(piece) === 'white' ? 'text-gray-200' : 'text-gray-900'}
+            ${piece === 'wk' || piece === 'bk' ? 'transition-transform duration-500' : ''}
+            ${gameOver && (piece === 'wk' || piece === 'bk') ? 'animate-fall' : ''}
+          `}>
+            {getPieceSymbol(piece)}
+          </span>
+        </div>
+      );
+    })
+  ))}
+</div>
           </Card>
           
           <div className="flex gap-4">
