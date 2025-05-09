@@ -25,7 +25,7 @@ const PlayPage = () => {
   
   useEffect(() => {
     // Initialize socket connection
-    const newSocket = io('https://chess-rating.onrender.com/');
+    const newSocket = io('http://localhost:4000');
     setSocket(newSocket);
     
     // Get current user from localStorage

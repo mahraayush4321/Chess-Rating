@@ -8,7 +8,7 @@ const app = express();
 const cors = require('cors');
 
 app.use(cors({
-    origin: '*', 
+    origin: 'http://localhost:5173', 
     credentials: true
 }));
 
@@ -19,10 +19,10 @@ dbHelper.createConnection().then(()=>{
     console.log('db connected successfully')
 }).catch((err)=>{
     console.log('failed to connect to db',err);
-})
+});
 
 cronJob.scheduleRatingUpdate();
 
-app.use(CONST.API_PREFIX, loadRoutes)
+app.use(CONST.API_PREFIX, loadRoutes);
 
-module.exports = app
+module.exports = app;

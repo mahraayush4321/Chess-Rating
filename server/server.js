@@ -4,19 +4,18 @@ const app = require('./app');
 require('dotenv').config();
 const { PORT } = require('./config');
 const { Server } = require('socket.io');
+const socketServer = require('./src/socket/matchmakingHandler');
 
 const httpServer = http.createServer(app);
 
 const io = new Server(httpServer, {
     cors: {
-        origin: '*',
+        origin: 'http://localhost:5173',
         credentials: true,
         methods: ["GET", "POST"]
     }
 });
 
-// Initialize socket server
-const socketServer = require('./src/socket/matchmakingHandler');
 socketServer(io);
 
 httpServer.listen(PORT, ()=> {

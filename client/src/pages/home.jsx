@@ -25,13 +25,14 @@ const AddMatch = () => {
       try {
         const user = JSON.parse(storedUser);
         setCurrentUser(user);
+        fetchSuitableOpponents(user._id);
       } catch (err) {
         console.error("Failed to parse user:", err);
       }
     }
 
     // Initialize socket connection
-    socketRef.current = io('https://chess-rating.onrender.com/'); // Update with your server URL
+    socketRef.current = io('http://localhost:4000'); // Update with your server URL
     
     // Socket event listeners
     socketRef.current.on('connect', () => {
@@ -81,6 +82,19 @@ const AddMatch = () => {
       }
     };
   }, []);
+
+  const fetchSuitableOpponents = async (userId) => {
+    try {
+      const response = await fetch(`http://localhost:4000/api/v1/findSuitableOpponents/${userId}`);
+      const data = await response.json();
+      
+      if (data.suitableOpponents) {
+        setSuitableOpponents(data.suitableOpponents);
+      }
+    } catch (err) {
+      console.error("Failed to fetch opponents:", err);
+    }
+  };
 
   const findMatch = () => {
     if (!currentUser || !socketRef.current) return;
