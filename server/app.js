@@ -33,4 +33,9 @@ cronJob.scheduleRatingUpdate();
 
 app.use(CONST.API_PREFIX, loadRoutes);
 
+// Add health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'healthy' });
+});
+
 module.exports = app;

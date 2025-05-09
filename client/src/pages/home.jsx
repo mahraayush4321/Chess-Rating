@@ -19,6 +19,20 @@ const AddMatch = () => {
   // Socket reference to prevent recreating on every render
   const socketRef = useRef(null);
 
+  const setupSocket = () => {
+    if (socketRef.current && !socketRef.current.connected) {
+      socketRef.current.connect();
+    } else if (!socketRef.current) {
+      socketRef.current = io('https://chess-rating.onrender.com', {
+        transports: ['websocket', 'polling'],
+        withCredentials: true,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000
+      });
+    }
+  };
+
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
@@ -32,54 +46,17 @@ const AddMatch = () => {
     }
 
     // Initialize socket connection
-    socketRef.current = io('https://chess-rating.onrender.com', {
-      transports: ['polling'],
-      withCredentials: true,
-    });
-    
-    // Socket event listeners
-    socketRef.current.on('connect', () => {
-      console.log('Connected to matchmaking server');
-    });
-    
-    socketRef.current.on('matchmaking', (data) => {
-      console.log('Matchmaking status:', data);
-      setMatchStatus(data.status);
-      
-      if (data.status === 'cancelled') {
-        setIsSearching(false);
-        setMatchDetails(null);
-      } else if (data.status === 'searching') {
-        setIsSearching(true);
-      }
-    });
-    
-    socketRef.current.on('matchFound', (data) => {
-      console.log('Match found!', data);
-      setMatchStatus('matched');
-      setIsSearching(false);
-      setMatchDetails(data);
-      // Reset ready states when a new match is found
-      setPlayerReady(false);
-      setWaitingForOpponent(false);
-    });
-    
-    socketRef.current.on('matchError', (data) => {
-      console.error('Matchmaking error:', data.message);
-      setError(data.message);
-      setIsSearching(false);
-      setMatchStatus('idle');
-    });
-    
-    // Listen for both players ready event
-    socketRef.current.on('bothPlayersReady', (data) => {
-      console.log('Both players ready to start!', data);
-      // Navigate to play page with match details
-      window.location.href = `/play?matchId=${data.matchId}&roomId=${data.roomId}`;
-    });
+    setupSocket();
 
-    // Cleanup on component unmount
+    const reconnectInterval = setInterval(() => {
+      if (!socketRef.current?.connected) {
+        console.log('Attempting to reconnect...');
+        setupSocket();
+      }
+    }, 5000);
+
     return () => {
+      clearInterval(reconnectInterval);
       if (socketRef.current) {
         socketRef.current.disconnect();
       }

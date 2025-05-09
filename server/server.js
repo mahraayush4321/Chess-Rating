@@ -17,7 +17,11 @@ const io = new Server(httpServer, {
         ],
         credentials: true,
         methods: ["GET", "POST", "OPTIONS"]
-    }
+    },
+    pingTimeout: 60000, // Increase ping timeout
+    pingInterval: 25000, // Increase ping interval
+    transports: ['websocket', 'polling'], // Enable both WebSocket and polling
+    allowEIO3: true // Enable Engine.IO v3 transport
 });
 
 

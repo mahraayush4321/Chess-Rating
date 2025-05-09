@@ -17,6 +17,34 @@ const initSocketHandlers = (io) => {
   io.on('connection', (socket) => {
     console.log(`New socket connection: ${socket.id}`);
     let currentPlayerId = null;
+    let heartbeat = null;
+
+    // Setup heartbeat
+    heartbeat = setInterval(() => {
+      if (socket.connected) {
+        socket.emit('ping');
+      } else {
+        clearInterval(heartbeat);
+      }
+    }, 25000);
+
+    socket.on('disconnect', async (reason) => {
+      console.log(`Socket disconnected: ${socket.id}, Reason: ${reason}`);
+      clearInterval(heartbeat);
+      
+      if (currentPlayerId) {
+        try {
+          const player = await Player.findById(currentPlayerId);
+          if (player) {
+            player.isSearchingMatch = false;
+            await player.save();
+          }
+          matchmakingQueue.delete(currentPlayerId);
+        } catch (error) {
+          console.error('Error handling disconnect:', error);
+        }
+      }
+    });
 
     // Handle find match requests
     socket.on('findMatch', async (data) => {
@@ -190,32 +218,6 @@ const initSocketHandlers = (io) => {
           startTime: new Date(),
           status: 'active'
         });
-      }
-    });
-
-    // Handle disconnections
-    socket.on('disconnect', async () => {
-      console.log(`Socket disconnected: ${socket.id}`);
-      
-      // If player was searching, update their status
-      if (currentPlayerId) {
-        try {
-          const player = await Player.findById(currentPlayerId);
-          if (player) {
-            player.isSearchingMatch = false;
-            await player.save();
-          }
-          
-          // Remove from queue
-          matchmakingQueue.delete(currentPlayerId);
-          
-          // Check if player was in any active match
-          // This would require keeping track of player-to-match mapping
-          // For simplicity, we're not implementing automatic forfeit on disconnect
-          // But in a real application, you might want to handle this case
-        } catch (error) {
-          console.error('Error handling disconnect:', error);
-        }
       }
     });
   });
