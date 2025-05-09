@@ -32,7 +32,7 @@ const AddMatch = () => {
     }
 
     // Initialize socket connection
-    socketRef.current = io('http://localhost:4000'); // Update with your server URL
+    socketRef.current = io('https://chess-rating.onrender.com'); // Update with your server URL
     
     // Socket event listeners
     socketRef.current.on('connect', () => {
@@ -85,7 +85,7 @@ const AddMatch = () => {
 
   const fetchSuitableOpponents = async (userId) => {
     try {
-      const response = await fetch(`http://localhost:4000/api/v1/findSuitableOpponents/${userId}`);
+      const response = await fetch(`https://chess-rating.onrender.com/api/v1/findSuitableOpponents/${userId}`);
       const data = await response.json();
       
       if (data.suitableOpponents) {
