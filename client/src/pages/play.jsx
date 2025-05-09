@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../components/ui/alert-dialog";
+import { Alert, AlertDescription } from "../components/ui/alert";
 import { pieces, initialBoard, getPieceSymbol, getPieceColor, isValidMove } from '../utils/chess';
 import io from 'socket.io-client';
 
@@ -27,6 +28,7 @@ const PlayPage = () => {
   const [blackTime, setBlackTime] = useState(0);
   const [timerInterval, setTimerInterval] = useState(null);
   const [lastMove, setLastMove] = useState(null);
+  const [showTurnAlert, setShowTurnAlert] = useState(false);
   
   useEffect(() => {
     if (matchDetails?.timeControl) {
@@ -146,11 +148,17 @@ const PlayPage = () => {
     newSocket.on('opponentMove', (data) => {
       console.log('Opponent move received:', data);
       handleOpponentMove(data.from, data.to);
+      
+      // Show turn alert when it's player's turn
+      if (bothPlayersReady && !gameOver) {
+        setShowTurnAlert(true);
+        setTimeout(() => setShowTurnAlert(false), 3000);
+      }
     });
 
     newSocket.on('connect_error', (error) => {
       console.error('Connection error:', error);
-      setErrorMessage('Failed to connect to game server. Retrying...');
+      // Not showing connection error message anymore
     });
 
     newSocket.on('matchFound', (details) => {
@@ -168,7 +176,7 @@ const PlayPage = () => {
   
     newSocket.on('disconnect', (reason) => {
       console.log('Socket disconnected:', reason);
-      setErrorMessage('Connection lost. Attempting to reconnect...');
+      // Not showing connection lost message anymore
       
       if (reason === "transport close" || reason === "transport error") {
         setTimeout(() => {
@@ -558,7 +566,7 @@ const PlayPage = () => {
             {/* Center Panel - Chess Board */}
             <div className="flex-1">
               {/* Game Status - Responsive */}
-              {(errorMessage || currentPlayer !== playerColor) && (
+              {(errorMessage || (currentPlayer !== playerColor && !showTurnAlert)) && (
                 <div className={`mb-3 sm:mb-4 p-2 sm:p-3 rounded-lg text-center text-xs sm:text-sm ${
                   errorMessage 
                     ? 'bg-red-100 text-red-700' 
@@ -567,11 +575,20 @@ const PlayPage = () => {
                   {errorMessage || "Waiting for opponent's move..."}
                 </div>
               )}
+              
+              {/* Your Turn Alert */}
+              {showTurnAlert && currentPlayer === playerColor && (
+                <Alert className="mb-3 sm:mb-4 bg-green-100 text-green-800 border-green-300">
+                  <AlertDescription className="text-center font-medium">
+                    It's your turn to move!
+                  </AlertDescription>
+                </Alert>
+              )}
 
-              {/* Chess Board - Responsive Sizing */}
-              <div className="mx-auto" style={{ maxWidth: 'min(100vw - 2rem, 500px)' }}>
+              {/* Chess Board - Responsive Sizing with Fixed Width on Desktop */}
+              <div className="mx-auto" style={{ maxWidth: 'min(100vw - 2rem, 500px)', width: '100%' }}>
                 <div className="overflow-hidden rounded-lg sm:rounded-xl border border-gray-200 shadow-md">
-                  <div className="grid grid-cols-8">
+                  <div className="grid grid-cols-8 w-full" style={{ contain: 'layout' }}>
                     {getDisplayBoard().map((row, displayRowIndex) =>
                       row.map((piece, displayColIndex) => {
                         const rowIndex = playerColor === "black" ? 7 - displayRowIndex : displayRowIndex;
