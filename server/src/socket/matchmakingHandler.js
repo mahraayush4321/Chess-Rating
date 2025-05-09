@@ -299,7 +299,7 @@ async function findMatchForPlayer(socket, player) {
       return;
     }
     
-    // Inside findMatchForPlayer function, after creating match
+    // Inside findMatchForPlayer function, in the try block after creating match
     try {
       console.log(`Attempting to create match between ${player.name} and ${opponentData.name}`);
       
@@ -336,6 +336,10 @@ async function findMatchForPlayer(socket, player) {
         socket.join(roomId),
         opponentSocket.join(roomId)
       ]);
+      
+      // Determine colors before setTimeout
+      const player1Color = Math.random() > 0.5 ? 'white' : 'black';
+      const player2Color = player1Color === 'white' ? 'black' : 'white';
       
       // Prepare match data with additional fields
       const matchData = {
