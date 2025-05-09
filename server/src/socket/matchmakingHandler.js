@@ -299,7 +299,7 @@ async function findMatchForPlayer(socket, player) {
       return;
     }
     
-    // Inside findMatchForPlayer function, in the try block after creating match
+    // Inside findMatchForPlayer function, update the match creation process
     try {
       console.log(`Attempting to create match between ${player.name} and ${opponentData.name}`);
       
@@ -331,48 +331,38 @@ async function findMatchForPlayer(socket, player) {
       const roomId = `match_${match._id}`;
       console.log(`Created match room: ${roomId}`);
       
-      // Join both players to room
+      // Determine colors
+      const player1Color = Math.random() > 0.5 ? 'white' : 'black';
+      const player2Color = player1Color === 'white' ? 'black' : 'white';
+      
+      // Send match details immediately without setTimeout
+      socket.emit('matchFound', {
+        matchId: match._id.toString(),
+        roomId,
+        opponent: {
+          id: opponentId,
+          name: opponent.name || `${opponent.firstName} ${opponent.lastName}`,
+          rating: opponent.rating
+        },
+        color: player1Color
+      });
+      
+      opponentSocket.emit('matchFound', {
+        matchId: match._id.toString(),
+        roomId,
+        opponent: {
+          id: playerId,
+          name: playerDoc.name || `${playerDoc.firstName} ${playerDoc.lastName}`,
+          rating: playerDoc.rating
+        },
+        color: player2Color
+      });
+      
+      // Join rooms after emitting match details
       await Promise.all([
         socket.join(roomId),
         opponentSocket.join(roomId)
       ]);
-      
-      // Determine colors before setTimeout
-      const player1Color = Math.random() > 0.5 ? 'white' : 'black';
-      const player2Color = player1Color === 'white' ? 'black' : 'white';
-      
-      // Prepare match data with additional fields
-      const matchData = {
-        matchId: match._id.toString(),
-        roomId,
-        status: 'created'
-      };
-      
-      // Notify first player with delay
-      setTimeout(() => {
-        socket.emit('matchFound', {
-          ...matchData,
-          opponent: {
-            id: opponentId,
-            name: opponent.name || `${opponent.firstName} ${opponent.lastName}`,
-            rating: opponent.rating
-          },
-          color: player1Color
-        });
-      }, 500);
-      
-      // Notify second player with delay
-      setTimeout(() => {
-        opponentSocket.emit('matchFound', {
-          ...matchData,
-          opponent: {
-            id: playerId,
-            name: playerDoc.name || `${playerDoc.firstName} ${playerDoc.lastName}`,
-            rating: playerDoc.rating
-          },
-          color: player2Color
-        });
-      }, 500);
       
       console.log(`Successfully created match between ${playerDoc.name} and ${opponent.name}`);
     } catch (error) {
