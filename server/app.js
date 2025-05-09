@@ -8,7 +8,7 @@ const app = express();
 const cors = require('cors');
 
 const corsOpt = {
-    origin: ['http://localhost:5173', 'https://chess-rating.onrender.com', 'https://chess-rating.vercel.app'],
+    origin: ['http://localhost:5173', 'https://chess-rating.onrender.com', 'https://chess-rating.vercel.app','https://chess-sh.netlify.app'],
     credentials: true,
     methods: ["GET", "POST", "OPTIONS"],
 };
