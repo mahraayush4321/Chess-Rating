@@ -27,6 +27,13 @@ const PlayPage = () => {
     const params = new URLSearchParams(location.search);
     const matchId = params.get('matchId');
     const roomId = params.get('roomId');
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+  
+    if (!matchId || !roomId || !currentUser) {
+      console.error('Missing required parameters or user data');
+      navigate('/');
+      return;
+    }
   
     const newSocket = io('https://chess-rating.onrender.com', {
       transports: ['websocket', 'polling'],
@@ -34,24 +41,30 @@ const PlayPage = () => {
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
-      timeout: 60000 // Increase timeout
+      timeout: 60000,
+      query: { // Add query parameters
+        matchId,
+        roomId,
+        playerId: currentUser._id
+      }
     });
     
     setSocket(newSocket);
     
-    // Get current user from localStorage
-    const currentUser = JSON.parse(localStorage.getItem('user'));
-    
     newSocket.on('connect', () => {
       console.log('Connected to game server');
-      // Re-join match room after reconnection
-      if (matchId && roomId && currentUser) {
-        newSocket.emit('joinMatch', {
-          matchId,
-          roomId,
-          playerId: currentUser._id
-        });
-      }
+      // Join match room immediately after connection
+      newSocket.emit('joinMatch', {
+        matchId,
+        roomId,
+        playerId: currentUser._id
+      });
+    });
+
+    // Add connection error handler
+    newSocket.on('connect_error', (error) => {
+      console.error('Connection error:', error);
+      setErrorMessage('Failed to connect to game server. Retrying...');
     });
 
     newSocket.on('matchFound', (details) => {
