@@ -4,6 +4,7 @@ import { Card, CardHeader, CardContent, CardTitle } from "../components/ui/card"
 import io from 'socket.io-client';
 import Board from "../../public/board.png"
 import Header from '../components/Header';
+import { useNavigate } from 'react-router-dom';
 
 const AddMatch = () => {
   const [currentUser, setCurrentUser] = useState(null);
@@ -16,6 +17,7 @@ const AddMatch = () => {
   const [playerReady, setPlayerReady] = useState(false); // Track if this player is ready
   const [waitingForOpponent, setWaitingForOpponent] = useState(false); // Track if waiting for opponent
   const [selectedTime, setSelectedTime] = useState(5);
+  const navigate = useNavigate();
   
   // Socket reference to prevent recreating on every render
   const socketRef = useRef(null);
@@ -80,7 +82,7 @@ const AddMatch = () => {
         setIsSearching(false);
         
         // Include timeControl in the URL
-        window.location.href = `/play?matchId=${details.matchId}&roomId=${details.roomId}&timeControl=${selectedTime * 60}`;
+        navigate(`/play?matchId=${details.matchId}&roomId=${details.roomId}&timeControl=${selectedTime * 60}`);
       });
 
       socketRef.current.on('matchmaking', (data) => {
