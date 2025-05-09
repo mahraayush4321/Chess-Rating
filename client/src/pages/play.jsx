@@ -26,6 +26,7 @@ const PlayPage = () => {
   const [whiteTime, setWhiteTime] = useState(0);
   const [blackTime, setBlackTime] = useState(0);
   const [timerInterval, setTimerInterval] = useState(null);
+  const [lastMove, setLastMove] = useState(null);
   
   useEffect(() => {
     if (matchDetails?.timeControl) {
@@ -276,11 +277,11 @@ const PlayPage = () => {
         setGameOver(true);
         setWinner(currentPlayer === 'white' ? 'black' : 'white');
       }
-      
       return newBoard;
     });
     
     // Toggle current player
+    setLastMove({ from, to });
     setCurrentPlayer(prev => prev === 'white' ? 'black' : 'white');
   };
   
@@ -405,6 +406,10 @@ const PlayPage = () => {
         // Update board and game state
         setBoard(newBoard);
         setSelectedPiece(null);
+        setLastMove({
+          from: { row: selectedPiece.row, col: selectedPiece.col },
+          to: { row, col }
+        });
         
         // Check if opponent's king is in check after move
         const oppositeColor = currentPlayer === 'white' ? 'black' : 'white';
@@ -574,61 +579,60 @@ const PlayPage = () => {
                       ? 7 - displayColIndex
                       : displayColIndex;
                   const isLight = (displayRowIndex + displayColIndex) % 2 === 0;
+                  const isLastMoveFrom =
+                    lastMove?.from.row === rowIndex &&
+                    lastMove?.from.col === colIndex;
+                  const isLastMoveTo =
+                    lastMove?.to.row === rowIndex &&
+                    lastMove?.to.col === colIndex;
 
                   return (
                     <div
                       key={`${rowIndex}-${colIndex}`}
                       data-position={`${rowIndex}-${colIndex}`}
                       className={`
-                        w-14 h-14 flex items-center justify-center text-4xl cursor-pointer
-                        transition-all duration-300 relative
-                        ${
-                          isLight
-                            ? "bg-gradient-to-br from-zinc-200/90 to-zinc-300/90"
-                            : "bg-gradient-to-br from-zinc-600/90 to-zinc-700/90"
-                        }
-                        ${
-                          selectedPiece &&
-                          selectedPiece.row === rowIndex &&
-                          selectedPiece.col === colIndex
-                            ? "ring-2 ring-purple-500 ring-inset"
-                            : ""
-                        }
-                        ${
-                          currentPlayer === playerColor
-                            ? "hover:bg-purple-400/20"
-                            : ""
-                        }
-                        ${
-                          isKingInCheck &&
-                          piece === (currentPlayer === "white" ? "wk" : "bk")
-                            ? "bg-red-500/30"
-                            : ""
-                        }
-                        backdrop-blur-sm
-                      `}
+            w-14 h-14 flex items-center justify-center text-4xl cursor-pointer
+            transition-all duration-300 relative
+            ${
+              isLight
+                ? "bg-gradient-to-br from-[#f0d9b5] to-[#e6cba5]"
+                : "bg-gradient-to-br from-[#b58863] to-[#a37753]"
+            }
+            ${
+              selectedPiece &&
+              selectedPiece.row === rowIndex &&
+              selectedPiece.col === colIndex
+                ? "ring-2 ring-yellow-400 ring-inset"
+                : ""
+            }
+            ${currentPlayer === playerColor ? "hover:bg-yellow-400/20" : ""}
+            ${
+              isKingInCheck &&
+              piece === (currentPlayer === "white" ? "wk" : "bk")
+                ? "bg-red-500/30"
+                : ""
+            }
+            ${isLastMoveFrom || isLastMoveTo ? "ring-2 ring-yellow-400/50" : ""}
+            backdrop-blur-sm
+          `}
                       onClick={() => handleSquareClick(rowIndex, colIndex)}
                     >
                       <span
                         className={`
-                        transform transition-all duration-300
-                        ${
-                          getPieceColor(piece) === "white"
-                            ? "text-gray-100"
-                            : "text-gray-900"
-                        }
-                        ${
-                          piece === "wk" || piece === "bk"
-                            ? "hover:scale-110"
-                            : ""
-                        }
-                        ${
-                          gameOver && (piece === "wk" || piece === "bk")
-                            ? "animate-fall"
-                            : ""
-                        }
-                        drop-shadow-md
-                      `}
+              transform transition-all duration-300
+              ${
+                getPieceColor(piece) === "white"
+                  ? "text-slate-100 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]"
+                  : "text-slate-900 drop-shadow-[0_2px_2px_rgba(255,255,255,0.3)]"
+              }
+              ${piece === "wk" || piece === "bk" ? "hover:scale-110" : ""}
+              ${
+                gameOver && (piece === "wk" || piece === "bk")
+                  ? "animate-fall"
+                  : ""
+              }
+              text-5xl font-bold
+            `}
                       >
                         {getPieceSymbol(piece)}
                       </span>
