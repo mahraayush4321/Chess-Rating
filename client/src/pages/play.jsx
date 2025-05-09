@@ -24,24 +24,50 @@ const PlayPage = () => {
   const [isSearching, setIsSearching] = useState(false);
   
   useEffect(() => {
-    const newSocket = io('https://chess-rating.onrender.com',{
-      transports: ['polling'],
+    const params = new URLSearchParams(location.search);
+    const matchId = params.get('matchId');
+    const roomId = params.get('roomId');
+  
+    const newSocket = io('https://chess-rating.onrender.com', {
+      transports: ['websocket', 'polling'],
       withCredentials: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000
     });
+    
     setSocket(newSocket);
     
     // Get current user from localStorage
     const currentUser = JSON.parse(localStorage.getItem('user'));
     
+    if (matchId && roomId) {
+      // Join the match room
+      newSocket.emit('joinMatch', {
+        matchId,
+        roomId,
+        playerId: currentUser._id
+      });
+    }
+  
     // Socket event listeners
+    newSocket.on('connect', () => {
+      console.log('Connected to game server');
+    });
+  
     newSocket.on('matchFound', (details) => {
-      console.log('Match found:', details);
+      console.log('Match details received:', details);
       setMatchDetails(details);
       setPlayerColor(details.color);
       setOpponentInfo(details.opponent);
       setIsSearching(false);
     });
-    
+  
+    newSocket.on('disconnect', (reason) => {
+      console.log('Socket disconnected:', reason);
+      setErrorMessage('Connection lost. Attempting to reconnect...');
+    });
+  
     newSocket.on('matchmaking', (data) => {
       console.log('Matchmaking status:', data);
       if (data.status === 'searching') {
@@ -79,7 +105,7 @@ const PlayPage = () => {
         newSocket.disconnect();
       }
     };
-  }, []);
+  }, [location.search]);
   
   const startSearching = () => {
     if (!socket) return;

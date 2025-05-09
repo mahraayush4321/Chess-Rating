@@ -48,6 +48,40 @@ const AddMatch = () => {
     // Initialize socket connection
     setupSocket();
 
+    // Add socket event listeners
+    if (socketRef.current) {
+      socketRef.current.on('connect', () => {
+        console.log('Connected to matchmaking server');
+      });
+
+      socketRef.current.on('matchFound', (details) => {
+        console.log('Match found:', details);
+        setMatchDetails(details);
+        setMatchStatus('matched');
+        setIsSearching(false);
+        
+        // Navigate to play page with match details
+        window.location.href = `/play?matchId=${details.matchId}&roomId=${details.roomId}`;
+      });
+
+      socketRef.current.on('matchmaking', (data) => {
+        console.log('Matchmaking status:', data);
+        setMatchStatus(data.status);
+        if (data.status === 'searching') {
+          setIsSearching(true);
+        } else if (data.status === 'cancelled') {
+          setIsSearching(false);
+          setMatchStatus('idle');
+        }
+      });
+
+      socketRef.current.on('disconnect', (reason) => {
+        console.log('Socket disconnected:', reason);
+        setIsSearching(false);
+        setMatchStatus('idle');
+      });
+    }
+
     const reconnectInterval = setInterval(() => {
       if (!socketRef.current?.connected) {
         console.log('Attempting to reconnect...');
