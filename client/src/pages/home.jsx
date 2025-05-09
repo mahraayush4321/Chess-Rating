@@ -33,7 +33,7 @@ const AddMatch = () => {
 
     // Initialize socket connection
     socketRef.current = io('https://chess-rating.onrender.com', {
-      transports: ['polling'], // enforce WebSocket
+      transports: ['polling'],
       withCredentials: true,
     });
     
