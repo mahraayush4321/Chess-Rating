@@ -17,7 +17,18 @@ const io = new Server(httpServer, {
         ],
         credentials: true,
         methods: ["GET", "POST", "OPTIONS"]
-    }
+    },
+    transports: ['websocket', 'polling'],
+  allowEIO3: true, // For compatibility
+  pingInterval: 25000,
+  pingTimeout: 60000,
+  cookie: {
+    name: "io",
+    path: "/",
+    httpOnly: true,
+    secure: true,
+    sameSite: "none"
+  }
 });
 
 

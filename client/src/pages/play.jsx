@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
@@ -9,7 +9,7 @@ import io from 'socket.io-client';
 const PlayPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const socketRef = useRef(null);
+  const [socket, setSocket] = useState(null);
   const [matchDetails, setMatchDetails] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [board, setBoard] = useState(initialBoard);
@@ -22,104 +22,26 @@ const PlayPage = () => {
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [bothPlayersReady, setBothPlayersReady] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState('disconnected');
-  
-  // Parse query parameters
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const matchId = searchParams.get('matchId');
-    const roomId = searchParams.get('roomId');
-    
-    if (matchId && roomId) {
-      // We have match parameters from URL, try to rejoin the match
-      console.log(`Attempting to rejoin match: ${matchId} in room: ${roomId}`);
-    }
-  }, [location]);
   
   useEffect(() => {
     // Initialize socket connection
-    console.log("Initializing socket connection...");
-    
-    // Allow both WebSocket and polling for better compatibility
-    socketRef.current = io('https://chess-rating.onrender.com', {
-      transports: ['websocket', 'polling'],
+    const newSocket = io("https://chess-rating.onrender.com", {
+      transports: ["polling", "websocket"],
       withCredentials: true,
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
-      timeout: 20000
+      reconnectionDelayMax: 5000,
+      randomizationFactor: 0.5,
+      timeout: 20000,
     });
+    setSocket(newSocket);
     
     // Get current user from localStorage
     const currentUser = JSON.parse(localStorage.getItem('user'));
-    if (!currentUser) {
-      setErrorMessage("Please log in to play");
-      return;
-    }
     
-    // Connection events
-    socketRef.current.on('connect', () => {
-      console.log('Socket connected successfully:', socketRef.current.id);
-      setConnectionStatus('connected');
-      
-      // If we have query parameters, try to rejoin the match
-      const searchParams = new URLSearchParams(location.search);
-      const matchId = searchParams.get('matchId');
-      const roomId = searchParams.get('roomId');
-      
-      if (matchId && roomId && currentUser) {
-        console.log(`Rejoining match ${matchId} in room ${roomId}`);
-        socketRef.current.emit('rejoinMatch', {
-          matchId,
-          roomId,
-          playerId: currentUser._id
-        });
-      }
-    });
-    
-    socketRef.current.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
-      setConnectionStatus('error');
-      setErrorMessage(`Connection error: ${error.message}`);
-    });
-    
-    socketRef.current.on('disconnect', (reason) => {
-      console.log('Socket disconnected:', reason);
-      setConnectionStatus('disconnected');
-      
-      // If the game is in progress, show reconnecting message
-      if (bothPlayersReady && !gameOver) {
-        setErrorMessage("Connection lost. Attempting to reconnect...");
-      }
-    });
-    
-    socketRef.current.on('reconnect', (attemptNumber) => {
-      console.log(`Socket reconnected after ${attemptNumber} attempts`);
-      setConnectionStatus('connected');
-      setErrorMessage("");
-      
-      // Re-authenticate and rejoin room if needed
-      const searchParams = new URLSearchParams(location.search);
-      const matchId = searchParams.get('matchId');
-      const roomId = searchParams.get('roomId');
-      
-      if (matchId && roomId && currentUser) {
-        socketRef.current.emit('rejoinMatch', {
-          matchId,
-          roomId,
-          playerId: currentUser._id
-        });
-      }
-    });
-    
-    socketRef.current.on('reconnect_failed', () => {
-      console.error('Socket reconnection failed');
-      setConnectionStatus('failed');
-      setErrorMessage("Failed to reconnect. Please refresh the page.");
-    });
-    
-    // Match and game events
-    socketRef.current.on('matchFound', (details) => {
+    // Socket event listeners
+    newSocket.on('matchFound', (details) => {
       console.log('Match found:', details);
       setMatchDetails(details);
       setPlayerColor(details.color);
@@ -127,7 +49,7 @@ const PlayPage = () => {
       setIsSearching(false);
     });
     
-    socketRef.current.on('matchmaking', (data) => {
+    newSocket.on('matchmaking', (data) => {
       console.log('Matchmaking status:', data);
       if (data.status === 'searching') {
         setIsSearching(true);
@@ -136,79 +58,38 @@ const PlayPage = () => {
       }
     });
     
-    socketRef.current.on('opponentMove', (data) => {
+    newSocket.on('opponentMove', (data) => {
       console.log('Opponent move received:', data);
       handleOpponentMove(data.from, data.to);
     });
     
-    socketRef.current.on('matchError', (error) => {
+    newSocket.on('matchError', (error) => {
       console.error('Match error:', error);
       setErrorMessage(error.message);
     });
     
-    socketRef.current.on('bothPlayersReady', (data) => {
+    newSocket.on('bothPlayersReady', (data) => {
       console.log('Both players ready:', data);
       setBothPlayersReady(true);
-      setErrorMessage("");
     });
     
-    socketRef.current.on('matchEnded', (data) => {
+    newSocket.on('matchEnded', (data) => {
       console.log('Match ended:', data);
       setGameOver(true);
       setWinner(data.winner);
     });
     
-    socketRef.current.on('gameState', (data) => {
-      console.log('Received game state:', data);
-      if (data.board) setBoard(data.board);
-      if (data.currentPlayer) setCurrentPlayer(data.currentPlayer);
-      if (data.playerColor) setPlayerColor(data.playerColor);
-      if (data.opponentInfo) setOpponentInfo(data.opponentInfo);
-      setBothPlayersReady(true);
-    });
-    
-    // Send heartbeat every 30 seconds to keep the connection alive
-    const heartbeatInterval = setInterval(() => {
-      if (socketRef.current && socketRef.current.connected) {
-        socketRef.current.emit('heartbeat');
-        console.log('Heartbeat sent');
-      }
-    }, 30000);
-    
     return () => {
-      clearInterval(heartbeatInterval);
-      
-      // Clean up socket connection
-      if (socketRef.current) {
-        console.log('Cleaning up socket connection');
-        socketRef.current.off('connect');
-        socketRef.current.off('disconnect');
-        socketRef.current.off('connect_error');
-        socketRef.current.off('reconnect');
-        socketRef.current.off('reconnect_failed');
-        socketRef.current.off('matchFound');
-        socketRef.current.off('matchmaking');
-        socketRef.current.off('opponentMove');
-        socketRef.current.off('matchError');
-        socketRef.current.off('bothPlayersReady');
-        socketRef.current.off('matchEnded');
-        socketRef.current.off('gameState');
-        
-        // Only cancel matchmaking if we're still searching
-        if (isSearching) {
-          socketRef.current.emit('cancelMatchmaking');
-        }
-        
-        socketRef.current.disconnect();
+      // Cancel matchmaking when component unmounts
+      if (newSocket) {
+        newSocket.emit('cancelMatchmaking');
+        newSocket.disconnect();
       }
     };
-  }, [location.search]);
+  }, []);
   
   const startSearching = () => {
-    if (!socketRef.current || socketRef.current.disconnected) {
-      setErrorMessage("Socket connection lost. Please refresh the page.");
-      return;
-    }
+    if (!socket) return;
     
     const currentUser = JSON.parse(localStorage.getItem('user'));
     if (!currentUser?._id) {
@@ -216,21 +97,19 @@ const PlayPage = () => {
       return;
     }
     
-    setErrorMessage("");
-    socketRef.current.emit('findMatch', { playerId: currentUser._id });
+    socket.emit('findMatch', { playerId: currentUser._id });
   };
   
   const cancelSearching = () => {
-    if (!socketRef.current || socketRef.current.disconnected) return;
-    socketRef.current.emit('cancelMatchmaking');
-    setIsSearching(false);
+    if (!socket) return;
+    socket.emit('cancelMatchmaking');
   };
   
   const markPlayerReady = () => {
-    if (!socketRef.current || !matchDetails) return;
+    if (!socket || !matchDetails) return;
     
     const currentUser = JSON.parse(localStorage.getItem('user'));
-    socketRef.current.emit('playerReady', {
+    socket.emit('playerReady', {
       matchId: matchDetails.matchId,
       roomId: matchDetails.roomId,
       playerId: currentUser._id
@@ -263,12 +142,6 @@ const PlayPage = () => {
   const handleSquareClick = (row, col) => {
     // Don't allow moves if game is over or not the player's turn
     if (gameOver || currentPlayer !== playerColor || !bothPlayersReady) return;
-    
-    // Check socket connection
-    if (!socketRef.current || socketRef.current.disconnected) {
-      setErrorMessage("Connection lost. Please wait for reconnection or refresh the page.");
-      return;
-    }
     
     const piece = board[row][col];
     const pieceColor = getPieceColor(piece);
@@ -311,8 +184,8 @@ const PlayPage = () => {
         newBoard[selectedPiece.row][selectedPiece.col] = '';
         
         // Emit move to opponent through socket
-        if (socketRef.current && matchDetails) {
-          socketRef.current.emit('chessMove', {
+        if (socket && matchDetails) {
+          socket.emit('chessMove', {
             roomId: matchDetails.roomId,
             from: { row: selectedPiece.row, col: selectedPiece.col },
             to: { row, col }
@@ -325,9 +198,9 @@ const PlayPage = () => {
           setWinner(currentPlayer);
           
           // Emit match result
-          if (socketRef.current && matchDetails) {
+          if (socket && matchDetails) {
             const currentUser = JSON.parse(localStorage.getItem('user'));
-            socketRef.current.emit('matchResult', {
+            socket.emit('matchResult', {
               matchId: matchDetails.matchId,
               roomId: matchDetails.roomId,
               winner: currentUser._id,
@@ -371,36 +244,10 @@ const PlayPage = () => {
   
   // Render different states based on game progress
   const renderGameStatus = () => {
-    // Show connection status if there's an issue
-    if (connectionStatus === 'error' || connectionStatus === 'disconnected' || connectionStatus === 'failed') {
-      return (
-        <div className="text-center p-4 mb-2 bg-red-900/30 border border-red-700 rounded">
-          <div className="text-red-300">
-            {connectionStatus === 'error' && "Connection error. Trying to reconnect..."}
-            {connectionStatus === 'disconnected' && "Disconnected from server. Reconnecting..."}
-            {connectionStatus === 'failed' && "Failed to connect. Please refresh the page."}
-          </div>
-          {connectionStatus === 'failed' && (
-            <Button 
-              onClick={() => window.location.reload()} 
-              className="mt-2 bg-red-600 hover:bg-red-700"
-            >
-              Refresh Page
-            </Button>
-          )}
-        </div>
-      );
-    }
-    
     if (isSearching) {
       return (
         <div className="text-center p-6">
-          <div className="mb-4 text-xl">
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-              Connecting with the opponent...
-            </div>
-          </div>
+          <div className="mb-4 text-xl">Connecting with the opponent...</div>
           <Button 
             onClick={cancelSearching} 
             className="bg-red-600 hover:bg-red-700"
@@ -432,10 +279,7 @@ const PlayPage = () => {
     if (matchDetails && isPlayerReady && !bothPlayersReady) {
       return (
         <div className="text-center p-6">
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-            <span className="text-xl">Waiting for opponent to be ready...</span>
-          </div>
+          <div className="text-xl">Waiting for opponent to be ready...</div>
         </div>
       );
     }
