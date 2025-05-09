@@ -515,165 +515,185 @@ const PlayPage = () => {
   };
   
   return (
-    <div className="min-h-screen bg-[#2b2d31] text-white">
+    <div className="min-h-screen bg-gray-100 text-gray-900">
       {/* Header */}
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">♟️</span>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
-              Chess Arena
-            </h1>
+      <header className="bg-white shadow-sm">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center">
+              <span className="text-white text-xl">♔</span>
+            </div>
+            <h1 className="text-xl font-bold">ChessMaster</h1>
           </div>
           <Button
             onClick={() => navigate("/home")}
-            className="bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all px-4 py-2 rounded-lg"
+            variant="outline"
+            className="border-red-500 text-red-500 hover:bg-red-50"
           >
             Exit Game
           </Button>
         </div>
-      </div>
-  
-      {/* Game Container */}
-      <div className="container mx-auto px-4 py-8">
+      </header>
+
+      {/* Main Game Area */}
+      <main className="container mx-auto px-4 py-8">
         {renderGameStatus()}
-  
+
         {matchDetails && bothPlayersReady && (
-          <div className="grid lg:grid-cols-4 gap-6">
-            {/* Left Panel - Game Info */}
-            <div className="lg:col-span-1 space-y-4">
-              <Card className="bg-[#313338] border-none p-4">
-                <h3 className="text-lg font-medium mb-4">Game Info</h3>
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Left Panel - Player Info */}
+            <div className="w-full lg:w-64 space-y-4">
+              <Card className="p-4">
+                <h2 className="text-lg font-semibold mb-4">Game Info</h2>
+                
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Opponent</p>
+                    <p className="font-medium">{opponentInfo?.name}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-gray-500">Rating</p>
+                    <p className="font-medium">{opponentInfo?.rating}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-gray-500">You're playing as</p>
+                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                      playerColor === 'white' 
+                        ? 'bg-gray-100 text-gray-800' 
+                        : 'bg-gray-800 text-white'
+                    }`}>
+                      {playerColor === 'white' ? 'White' : 'Black'}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Timers */}
+              <Card className="p-4">
+                <h2 className="text-lg font-semibold mb-4">Timers</h2>
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center p-3 bg-[#383a40] rounded-lg">
-                    <span className="text-gray-400">Opponent</span>
-                    <span className="font-medium">{opponentInfo?.name}</span>
+                  <div className={`p-3 rounded-lg ${
+                    currentPlayer === 'white' ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'
+                  }`}>
+                    <p className="text-sm text-gray-500">White</p>
+                    <p className="text-2xl font-mono font-bold">{formatTime(whiteTime)}</p>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-[#383a40] rounded-lg">
-                    <span className="text-gray-400">Rating</span>
-                    <span className="font-medium">{opponentInfo?.rating}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-[#383a40] rounded-lg">
-                    <span className="text-gray-400">Playing as</span>
-                    <span className="font-medium">{playerColor === 'white' ? '⚪ White' : '⚫ Black'}</span>
+                  <div className={`p-3 rounded-lg ${
+                    currentPlayer === 'black' ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'
+                  }`}>
+                    <p className="text-sm text-gray-500">Black</p>
+                    <p className="text-2xl font-mono font-bold">{formatTime(blackTime)}</p>
                   </div>
                 </div>
               </Card>
             </div>
-  
+
             {/* Center Panel - Chess Board */}
-            <div className="lg:col-span-3 space-y-4">
-              {/* Timers */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className={`p-4 rounded-lg ${
-                  currentPlayer === 'white' 
-                    ? 'bg-blue-500/20 border border-blue-500/30' 
-                    : 'bg-[#313338]'
-                }`}>
-                  <div className="text-sm text-gray-400">White</div>
-                  <div className="text-2xl font-bold">{formatTime(whiteTime)}</div>
-                </div>
-                <div className={`p-4 rounded-lg ${
-                  currentPlayer === 'black' 
-                    ? 'bg-blue-500/20 border border-blue-500/30' 
-                    : 'bg-[#313338]'
-                }`}>
-                  <div className="text-sm text-gray-400">Black</div>
-                  <div className="text-2xl font-bold">{formatTime(blackTime)}</div>
-                </div>
-              </div>
-  
+            <div className="flex-1">
               {/* Game Status */}
               {(errorMessage || currentPlayer !== playerColor) && (
-                <div className={`p-3 rounded-lg text-center ${
+                <div className={`mb-4 p-3 rounded-lg text-center ${
                   errorMessage 
-                    ? 'bg-red-500/20 text-red-400' 
-                    : 'bg-blue-500/20 text-blue-400'
+                    ? 'bg-red-100 text-red-700' 
+                    : 'bg-blue-100 text-blue-700'
                 }`}>
                   {errorMessage || "Waiting for opponent's move..."}
                 </div>
               )}
-  
+
               {/* Chess Board */}
-              <div className="aspect-square">
-                <div className="grid grid-cols-8 rounded-xl overflow-hidden border border-[#383a40] shadow-2xl">
-                  {getDisplayBoard().map((row, displayRowIndex) =>
-                    row.map((piece, displayColIndex) => {
-                      const rowIndex = playerColor === "black" ? 7 - displayRowIndex : displayRowIndex;
-                      const colIndex = playerColor === "black" ? 7 - displayColIndex : displayColIndex;
-                      const isLight = (displayRowIndex + displayColIndex) % 2 === 0;
-                      const isLastMoveFrom = lastMove?.from.row === rowIndex && lastMove?.from.col === colIndex;
-                      const isLastMoveTo = lastMove?.to.row === rowIndex && lastMove?.to.col === colIndex;
-  
-                      return (
-                        <div
-                          key={`${rowIndex}-${colIndex}`}
-                          data-position={`${rowIndex}-${colIndex}`}
-                          className={`
-                            relative flex items-center justify-center
-                            ${isLight ? 'bg-[#ebecd0]' : 'bg-[#779556]'}
-                            ${selectedPiece && selectedPiece.row === rowIndex && selectedPiece.col === colIndex
-                              ? 'ring-2 ring-yellow-400 ring-inset'
-                              : ''}
-                            ${currentPlayer === playerColor ? 'hover:brightness-110' : ''}
-                            ${isKingInCheck && piece === (currentPlayer === "white" ? "wk" : "bk")
-                              ? 'after:absolute after:inset-0 after:bg-red-500/30'
-                              : ''}
-                            ${isLastMoveFrom || isLastMoveTo ? 'after:absolute after:inset-0 after:bg-yellow-400/30' : ''}
-                            transition-all duration-200
-                          `}
-                          onClick={() => handleSquareClick(rowIndex, colIndex)}
-                        >
-                          <span className={`
-                            text-5xl
-                            ${getPieceColor(piece) === "white" ? "text-[#fff] drop-shadow-lg" : "text-[#000] drop-shadow-lg"}
-                            transform transition-transform hover:scale-110
-                          `}>
-                            {getPieceSymbol(piece)}
-                          </span>
-                        </div>
-                      );
-                    })
-                  )}
+              <div className="max-w-2xl mx-auto">
+                <div className="overflow-hidden rounded-xl shadow-lg border border-gray-200">
+                  <div className="grid grid-cols-8">
+                    {getDisplayBoard().map((row, displayRowIndex) =>
+                      row.map((piece, displayColIndex) => {
+                        const rowIndex = playerColor === "black" ? 7 - displayRowIndex : displayRowIndex;
+                        const colIndex = playerColor === "black" ? 7 - displayColIndex : displayColIndex;
+                        const isLight = (displayRowIndex + displayColIndex) % 2 === 0;
+                        const isLastMoveFrom = lastMove?.from.row === rowIndex && lastMove?.from.col === colIndex;
+                        const isLastMoveTo = lastMove?.to.row === rowIndex && lastMove?.to.col === colIndex;
+
+                        return (
+                          <div
+                            key={`${rowIndex}-${colIndex}`}
+                            data-position={`${rowIndex}-${colIndex}`}
+                            className={`
+                              aspect-square flex items-center justify-center relative
+                              ${isLight ? 'bg-[#f0d9b5]' : 'bg-[#b58863]'}
+                              ${selectedPiece?.row === rowIndex && selectedPiece?.col === colIndex
+                                ? 'ring-2 ring-yellow-400 ring-offset-2'
+                                : ''}
+                              ${isLastMoveFrom || isLastMoveTo ? 'bg-[#f7f769]' : ''}
+                              ${isKingInCheck && piece === (currentPlayer === "white" ? "wk" : "bk")
+                                ? 'bg-red-200' : ''}
+                              ${currentPlayer === playerColor && !piece ? 'cursor-pointer hover:bg-opacity-80' : ''}
+                              transition-colors duration-150
+                            `}
+                            onClick={() => handleSquareClick(rowIndex, colIndex)}
+                          >
+                            {piece && (
+                              <span className={`
+                                text-4xl md:text-5xl
+                                ${getPieceColor(piece) === "white" 
+                                  ? "text-white drop-shadow-lg" 
+                                  : "text-gray-900 drop-shadow-lg"}
+                                ${selectedPiece?.row === rowIndex && selectedPiece?.col === colIndex
+                                  ? 'scale-110' : ''}
+                                transition-transform duration-100
+                              `}>
+                                {getPieceSymbol(piece)}
+                              </span>
+                            )}
+                            {/* Coordinates for debugging */}
+                            {/* <span className="absolute bottom-0 right-0 text-xs text-black/30">
+                              {String.fromCharCode(97 + colIndex)}{8 - rowIndex}
+                            </span> */}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         )}
-      </div>
-  
+      </main>
+
       {/* Game Over Dialog */}
       <AlertDialog open={gameOver}>
-        <AlertDialogContent className="bg-[#313338] border-none">
+        <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-2xl font-bold text-center">
-              Game Over
+              {winner === playerColor ? "Victory!" : "Game Over"}
             </AlertDialogTitle>
           </AlertDialogHeader>
-          <div className="py-8 text-center space-y-4">
+          <div className="py-6 text-center space-y-4">
             <div className="text-6xl">
               {winner === playerColor ? "🏆" : "👏"}
             </div>
-            <div className="text-xl">
+            <p className="text-lg">
               {winner === playerColor
-                ? "Congratulations! You won!"
-                : "Good game! Your opponent won."}
-            </div>
+                ? "Congratulations on your win!"
+                : "Thanks for playing!"}
+            </p>
             {(whiteTime <= 0 || blackTime <= 0) && (
-              <div className="text-sm text-gray-400">
+              <p className="text-sm text-gray-500">
                 Game ended by timeout
-              </div>
+              </p>
             )}
           </div>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="sm:justify-center">
             <AlertDialogAction
               onClick={() => {
                 resetGame();
                 navigate("/home");
               }}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg transition-all"
+              className="w-full bg-blue-600 hover:bg-blue-700"
             >
-              Back to Home
+              Return to Lobby
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
