@@ -11,8 +11,6 @@ const corsOpt = {
     origin: ['http://localhost:5173', 'https://chess-rating.onrender.com', 'https://chess-rating.vercel.app'],
     credentials: true,
     methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
-    exposedHeaders: ['*', 'Authorization']
 };
 
 app.use(cors(corsOpt));

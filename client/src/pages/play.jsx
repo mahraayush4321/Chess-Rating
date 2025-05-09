@@ -28,12 +28,6 @@ const PlayPage = () => {
     const newSocket = io("https://chess-rating.onrender.com", {
       transports: ["polling", "websocket"],
       withCredentials: true,
-      reconnection: true,
-      reconnectionAttempts: Infinity,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      randomizationFactor: 0.5,
-      timeout: 20000,
     });
     setSocket(newSocket);
     
