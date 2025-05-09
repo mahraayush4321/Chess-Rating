@@ -7,13 +7,13 @@ const cronJob = require('./src/helpers/cronJob');
 const app = express();
 const cors = require('cors');
 
-const corsOptions = {
+const corsOpt = {
     origin: ['http://localhost:5173', 'https://chess-rating.onrender.com', 'https://chess-rating.vercel.app'],
     credentials: true,
     methods: ["GET", "POST", "OPTIONS"],
 };
 
-app.use(cors(corsOptions));
+app.use(cors(corsOpt));
 
 // app.use(cors({
 //     origin: ['http://localhost:5173','https://chess-rating.onrender.com', 'https://chess-rating.vercel.app/'], 
