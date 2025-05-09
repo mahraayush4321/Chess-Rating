@@ -79,8 +79,8 @@ const AddMatch = () => {
         setMatchStatus('matched');
         setIsSearching(false);
         
-        // Navigate to play page with match details
-        window.location.href = `/play?matchId=${details.matchId}&roomId=${details.roomId}`;
+        // Include timeControl in the URL
+        window.location.href = `/play?matchId=${details.matchId}&roomId=${details.roomId}&timeControl=${selectedTime * 60}`;
       });
 
       socketRef.current.on('matchmaking', (data) => {

@@ -65,6 +65,8 @@ const PlayPage = () => {
 
 
   const handleTimeOut = (color) => {
+    if (!bothPlayersReady) return; // Don't handle timeout if game hasn't started
+    
     setGameOver(true);
     setWinner(color === 'white' ? 'black' : 'white');
     
@@ -100,6 +102,7 @@ const PlayPage = () => {
     const params = new URLSearchParams(location.search);
     const matchId = params.get('matchId');
     const roomId = params.get('roomId');
+    const timeControl = parseInt(params.get('timeControl')) || 300;
     const currentUser = JSON.parse(localStorage.getItem('user'));
   
     if (!matchId || !roomId || !currentUser) {
@@ -108,6 +111,8 @@ const PlayPage = () => {
       return;
     }
 
+    setWhiteTime(timeControl);
+    setBlackTime(timeControl);
   
     const newSocket = io('https://chess-rating.onrender.com', {
       transports: ['websocket', 'polling'],
@@ -188,6 +193,45 @@ const PlayPage = () => {
       }
     };
   }, [location.search, navigate]);
+
+
+  useEffect(() => {
+    if (bothPlayersReady && !gameOver) {
+      // Add a small delay before starting the timer
+      const startDelay = setTimeout(() => {
+        const interval = setInterval(() => {
+          if (currentPlayer === 'white') {
+            setWhiteTime(prev => {
+              if (prev <= 0) {
+                clearInterval(interval);
+                handleTimeOut('white');
+                return 0;
+              }
+              return prev - 1;
+            });
+          } else {
+            setBlackTime(prev => {
+              if (prev <= 0) {
+                clearInterval(interval);
+                handleTimeOut('black');
+                return 0;
+              }
+              return prev - 1;
+            });
+          }
+        }, 1000);
+        
+        setTimerInterval(interval);
+      }, 1000); // 1 second delay before starting
+  
+      return () => {
+        clearTimeout(startDelay);
+        if (timerInterval) {
+          clearInterval(timerInterval);
+        }
+      };
+    }
+  }, [currentPlayer, bothPlayersReady, gameOver]);
   
   const startSearching = () => {
     if (!socket) return;
