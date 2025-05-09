@@ -199,44 +199,65 @@ const AddMatch = () => {
 
 
   return (
-<>
-      <Header/>
+  <>
+    <Header />
     <div className="min-h-screen bg-zinc-900 text-white">
-      <div className="mx-auto max-w-6xl p-4">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         {/* Main chess board and play options */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center py-8">
-          {/* <ChessBoard /> */}
-          <img src={Board} alt="Chess Piece" />
+        <div className="flex flex-col lg:flex-row items-center justify-center gap-8 py-8 md:py-12">
+          {/* Chess Board - Responsive sizing */}
+          <div className="w-full max-w-md lg:max-w-2xl">
+            <img 
+              src={Board} 
+              alt="Chess Board" 
+              className="w-full mt-10 rounded-lg shadow-xl border border-zinc-700"
+            />
+          </div>
           
-          <div className="flex flex-col justify-center space-y-8">
+          {/* Play Options */}
+          <div className="w-full max-w-md flex flex-col space-y-6 md:space-y-8">
             <div className="text-center">
-              <h1 className="text-5xl font-bold mb-8">Play Chess Online</h1>
-              <h2 className="text-3xl font-bold mb-6">on the #1 Site!</h2>
-              <TimeOptions />
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 md:mb-6 bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
+                Play Chess Online
+              </h1>
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-zinc-300">
+                on the #1 Chess Site!
+              </h2>
             </div>
+            
+            <TimeOptions />
             
             {/* Play buttons */}
             {matchStatus !== 'matched' ? (
               <button
                 onClick={findMatch}
                 disabled={isSearching}
-                className="flex items-center justify-center py-6 px-6 rounded-lg bg-green-600 hover:bg-green-700 transition text-white text-xl font-bold"
+                className={`relative overflow-hidden flex items-center justify-center py-4 px-6 rounded-xl text-white font-bold transition-all
+                  ${isSearching 
+                    ? 'bg-zinc-700 cursor-not-allowed' 
+                    : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-green-500/20'}
+                `}
               >
                 {isSearching ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                    Finding opponent...
+                    <span>Finding opponent...</span>
                   </>
                 ) : (
                   <>
-                    <div className="flex items-center">
-                      <div className="mr-3 bg-white rounded-full p-1">
-                        <div className="w-8 h-8 bg-green-600 rounded-full"></div>
+                    <div className="flex items-center w-full justify-between">
+                      <div className="flex items-center">
+                        <div className="mr-3 bg-white rounded-full p-1">
+                          <div className="w-6 h-6 bg-green-600 rounded-full"></div>
+                        </div>
+                        <div className="text-left">
+                          <div className="text-lg md:text-xl">Play Online</div>
+                          <div className="text-xs md:text-sm text-green-200/80">Play with someone at your level</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="text-xl">Play Online</div>
-                        <div className="text-sm text-green-200">Play with someone at your level</div>
-                      </div>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
                     </div>
                   </>
                 )}
@@ -246,14 +267,14 @@ const AddMatch = () => {
             {isSearching && (
               <button
                 onClick={cancelMatchSearch}
-                className="py-4 px-6 rounded-lg bg-red-600 hover:bg-red-700 transition text-white font-bold"
+                className="py-3 px-6 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 transition text-white font-medium shadow-lg hover:shadow-red-500/10"
               >
                 Cancel Search
               </button>
             )}
             
             {error && (
-              <div className="p-3 bg-red-900/50 border border-red-700 rounded text-red-200 text-center">
+              <div className="p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-200 text-center backdrop-blur-sm animate-pulse">
                 {error}
               </div>
             )}
@@ -263,44 +284,60 @@ const AddMatch = () => {
       
       {/* Match Found Dialog */}
       {matchStatus === 'matched' && matchDetails && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-zinc-800 border border-zinc-700 rounded-xl shadow-2xl p-6 w-96 max-w-md">
-            <h2 className="text-2xl font-bold mb-4 text-center">Match Found!</h2>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-zinc-800 border border-zinc-700 rounded-xl shadow-2xl p-6 w-full max-w-md animate-fade-in">
+            <h2 className="text-2xl font-bold mb-4 text-center text-transparent bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text">
+              Match Found!
+            </h2>
             
-            <div className="bg-green-900/30 border border-green-700 rounded p-4 mb-6">
-              <p className="mb-2"><span className="font-semibold">Opponent:</span> {matchDetails.opponent.name}</p>
-              <p className="mb-2"><span className="font-semibold">Rating:</span> {matchDetails.opponent.rating}</p>
-              <p><span className="font-semibold">You are playing as:</span> {matchDetails.color}</p>
+            <div className="bg-gradient-to-br from-green-900/30 to-emerald-900/20 border border-green-700/50 rounded-lg p-4 mb-6 backdrop-blur-sm">
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-medium text-zinc-300">Opponent:</span>
+                <span className="font-semibold">{matchDetails.opponent.name}</span>
+              </div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-medium text-zinc-300">Rating:</span>
+                <span className="font-semibold">{matchDetails.opponent.rating}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-zinc-300">You play as:</span>
+                <span className={`font-bold ${matchDetails.color === 'white' ? 'text-white' : 'text-zinc-800 bg-zinc-300 px-2 rounded'}`}>
+                  {matchDetails.color}
+                </span>
+              </div>
             </div>
             
             {playerReady ? (
-              <div className="flex items-center justify-center p-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
-                <span>Waiting for opponent...</span>
+              <div className="flex flex-col items-center justify-center p-4 space-y-3">
+                <div className="animate-spin rounded-full h-8 w-8 border-4 border-green-500 border-t-transparent"></div>
+                <span className="text-zinc-400">Waiting for opponent...</span>
+                <div className="w-full bg-zinc-700 rounded-full h-1.5 mt-2">
+                  <div className="bg-green-500 h-1.5 rounded-full animate-pulse" style={{width: '45%'}}></div>
+                </div>
               </div>
             ) : (
-              <button
-                onClick={handleStartGame}
-                className="w-full py-3 bg-gradient-to-r from-green-600 to-blue-600 rounded-lg text-white font-bold hover:from-green-700 hover:to-blue-700 transition"
-              >
-                Start Game
-              </button>
-            )}
-            
-            {!playerReady && (
-              <button
-                onClick={() => {setMatchStatus('idle'); setMatchDetails(null);}}
-                className="w-full mt-3 py-2 bg-transparent border border-zinc-600 rounded-lg text-zinc-300 hover:bg-zinc-700 transition"
-              >
-                Decline Match
-              </button>
+              <>
+                <button
+                  onClick={handleStartGame}
+                  className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg text-white font-bold hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg hover:shadow-green-500/30"
+                >
+                  Start Game
+                </button>
+                
+                <button
+                  onClick={() => {setMatchStatus('idle'); setMatchDetails(null);}}
+                  className="w-full mt-3 py-2.5 bg-transparent border border-zinc-600 rounded-lg text-zinc-300 hover:bg-zinc-700/50 transition"
+                >
+                  Decline Match
+                </button>
+              </>
             )}
           </div>
         </div>
       )}
     </div>
-</>
-  );
+  </>
+);
 };
 
 export default AddMatch;
