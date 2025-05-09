@@ -88,7 +88,7 @@ const AddMatch = () => {
 
   const fetchSuitableOpponents = async (userId) => {
     try {
-      const response = await fetch(`http://localhost:4000/api/v1/findSuitableOpponents/${userId}`);
+      const response = await fetch(`https://chess-rating.onrender.com/api/v1/findSuitableOpponents/${userId}`);
       const data = await response.json();
       
       if (data.suitableOpponents) {
