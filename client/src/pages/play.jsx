@@ -27,8 +27,6 @@ const PlayPage = () => {
   const [blackTime, setBlackTime] = useState(0);
   const [timerInterval, setTimerInterval] = useState(null);
   const [lastMove, setLastMove] = useState(null);
-  const [showTurnAlert, setShowTurnAlert] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth > 1024);
   
   useEffect(() => {
     if (matchDetails?.timeControl) {
@@ -36,15 +34,6 @@ const PlayPage = () => {
       setBlackTime(matchDetails.timeControl);
     }
   }, [matchDetails]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsDesktop(window.innerWidth > 1024);
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   useEffect(() => {
     if (bothPlayersReady && !gameOver) {
@@ -157,14 +146,11 @@ const PlayPage = () => {
     newSocket.on('opponentMove', (data) => {
       console.log('Opponent move received:', data);
       handleOpponentMove(data.from, data.to);
-      if (currentPlayer === playerColor) {
-        setShowTurnAlert(true);
-      }
     });
 
     newSocket.on('connect_error', (error) => {
       console.error('Connection error:', error);
-      setErrorMessage('Connection issues. Trying to reconnect...');
+      setErrorMessage('Failed to connect to game server. Retrying...');
     });
 
     newSocket.on('matchFound', (details) => {
@@ -182,7 +168,7 @@ const PlayPage = () => {
   
     newSocket.on('disconnect', (reason) => {
       console.log('Socket disconnected:', reason);
-      setErrorMessage('Connection issues. Trying to reconnect...');
+      setErrorMessage('Connection lost. Attempting to reconnect...');
       
       if (reason === "transport close" || reason === "transport error") {
         setTimeout(() => {
@@ -572,21 +558,18 @@ const PlayPage = () => {
             {/* Center Panel - Chess Board */}
             <div className="flex-1">
               {/* Game Status - Responsive */}
-              {errorMessage && (
+              {(errorMessage || currentPlayer !== playerColor) && (
                 <div className={`mb-3 sm:mb-4 p-2 sm:p-3 rounded-lg text-center text-xs sm:text-sm ${
                   errorMessage 
                     ? 'bg-red-100 text-red-700' 
                     : 'bg-blue-100 text-blue-700'
                 }`}>
-                  {errorMessage}
+                  {errorMessage || "Waiting for opponent's move..."}
                 </div>
               )}
 
               {/* Chess Board - Responsive Sizing */}
-              <div className="mx-auto" style={{ 
-                maxWidth: 'min(100vw - 2rem, 500px)',
-                transform: isDesktop ? 'translateZ(0)' : 'none' // Fix for desktop shaking
-              }}>
+              <div className="mx-auto" style={{ maxWidth: 'min(100vw - 2rem, 500px)' }}>
                 <div className="overflow-hidden rounded-lg sm:rounded-xl border border-gray-200 shadow-md">
                   <div className="grid grid-cols-8">
                     {getDisplayBoard().map((row, displayRowIndex) =>
@@ -719,29 +702,6 @@ const PlayPage = () => {
               className="w-full bg-blue-600 hover:bg-blue-700 text-sm sm:text-base"
             >
               Return to Lobby
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Turn Alert Dialog */}
-      <AlertDialog open={showTurnAlert} onOpenChange={setShowTurnAlert}>
-        <AlertDialogContent className="max-w-xs sm:max-w-md mx-2 sm:mx-auto">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl sm:text-2xl font-bold text-center">
-              It's Your Turn!
-            </AlertDialogTitle>
-          </AlertDialogHeader>
-          <div className="py-4 sm:py-6 text-center">
-            <p className="text-sm sm:text-lg">
-              The opponent has made their move. It's now your turn to play.
-            </p>
-          </div>
-          <AlertDialogFooter className="sm:justify-center">
-            <AlertDialogAction
-              className="w-full bg-blue-600 hover:bg-blue-700 text-sm sm:text-base"
-            >
-              OK
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
