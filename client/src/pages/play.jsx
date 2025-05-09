@@ -33,7 +33,8 @@ const PlayPage = () => {
       withCredentials: true,
       reconnection: true,
       reconnectionAttempts: 5,
-      reconnectionDelay: 1000
+      reconnectionDelay: 1000,
+      timeout: 60000 // Increase timeout
     });
     
     setSocket(newSocket);
@@ -41,22 +42,26 @@ const PlayPage = () => {
     // Get current user from localStorage
     const currentUser = JSON.parse(localStorage.getItem('user'));
     
-    if (matchId && roomId) {
-      // Join the match room
-      newSocket.emit('joinMatch', {
-        matchId,
-        roomId,
-        playerId: currentUser._id
-      });
-    }
-  
-    // Socket event listeners
     newSocket.on('connect', () => {
       console.log('Connected to game server');
+      // Re-join match room after reconnection
+      if (matchId && roomId && currentUser) {
+        newSocket.emit('joinMatch', {
+          matchId,
+          roomId,
+          playerId: currentUser._id
+        });
+      }
     });
-  
+
     newSocket.on('matchFound', (details) => {
       console.log('Match details received:', details);
+      // Update URL with match details
+      const searchParams = new URLSearchParams();
+      searchParams.set('matchId', details.matchId);
+      searchParams.set('roomId', details.roomId);
+      navigate(`${location.pathname}?${searchParams.toString()}`, { replace: true });
+      
       setMatchDetails(details);
       setPlayerColor(details.color);
       setOpponentInfo(details.opponent);
@@ -66,46 +71,25 @@ const PlayPage = () => {
     newSocket.on('disconnect', (reason) => {
       console.log('Socket disconnected:', reason);
       setErrorMessage('Connection lost. Attempting to reconnect...');
-    });
-  
-    newSocket.on('matchmaking', (data) => {
-      console.log('Matchmaking status:', data);
-      if (data.status === 'searching') {
-        setIsSearching(true);
-      } else if (data.status === 'cancelled') {
-        setIsSearching(false);
+      
+      // Attempt to reconnect
+      if (reason === "transport close" || reason === "transport error") {
+        setTimeout(() => {
+          newSocket.connect();
+        }, 1000);
       }
     });
-    
-    newSocket.on('opponentMove', (data) => {
-      console.log('Opponent move received:', data);
-      handleOpponentMove(data.from, data.to);
-    });
-    
-    newSocket.on('matchError', (error) => {
-      console.error('Match error:', error);
-      setErrorMessage(error.message);
-    });
-    
-    newSocket.on('bothPlayersReady', (data) => {
-      console.log('Both players ready:', data);
-      setBothPlayersReady(true);
-    });
-    
-    newSocket.on('matchEnded', (data) => {
-      console.log('Match ended:', data);
-      setGameOver(true);
-      setWinner(data.winner);
-    });
-    
+  
     return () => {
-      // Cancel matchmaking when component unmounts
       if (newSocket) {
-        newSocket.emit('cancelMatchmaking');
+        // Only cancel matchmaking if we're still searching
+        if (isSearching) {
+          newSocket.emit('cancelMatchmaking');
+        }
         newSocket.disconnect();
       }
     };
-  }, [location.search]);
+  }, [location.search, navigate]);
   
   const startSearching = () => {
     if (!socket) return;
