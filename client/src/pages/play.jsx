@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../components/ui/alert-dialog";
@@ -64,9 +64,8 @@ const PlayPage = () => {
     }
   }, [currentPlayer, bothPlayersReady, gameOver]);
 
-
   const handleTimeOut = (color) => {
-    if (!bothPlayersReady) return; // Don't handle timeout if game hasn't started
+    if (!bothPlayersReady) return;
     
     setGameOver(true);
     setWinner(color === 'white' ? 'black' : 'white');
@@ -98,7 +97,6 @@ const PlayPage = () => {
     };
   }, [timerInterval]);
   
-  
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const matchId = params.get('matchId');
@@ -122,7 +120,7 @@ const PlayPage = () => {
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
       timeout: 60000,
-      query: { // Add query parameters
+      query: {
         matchId,
         roomId,
         playerId: currentUser._id
@@ -133,7 +131,6 @@ const PlayPage = () => {
     
     newSocket.on('connect', () => {
       console.log('Connected to game server');
-      // Join match room immediately after connection
       newSocket.emit('joinMatch', {
         matchId,
         roomId,
@@ -141,7 +138,6 @@ const PlayPage = () => {
       });
     });
 
-    // Add these new event listeners
     newSocket.on('bothPlayersReady', (data) => {
       console.log('Both players ready:', data);
       setBothPlayersReady(true);
@@ -152,7 +148,6 @@ const PlayPage = () => {
       handleOpponentMove(data.from, data.to);
     });
 
-    // Add connection error handler
     newSocket.on('connect_error', (error) => {
       console.error('Connection error:', error);
       setErrorMessage('Failed to connect to game server. Retrying...');
@@ -160,7 +155,6 @@ const PlayPage = () => {
 
     newSocket.on('matchFound', (details) => {
       console.log('Match details received:', details);
-      // Update URL with match details
       const searchParams = new URLSearchParams();
       searchParams.set('matchId', details.matchId);
       searchParams.set('roomId', details.roomId);
@@ -176,7 +170,6 @@ const PlayPage = () => {
       console.log('Socket disconnected:', reason);
       setErrorMessage('Connection lost. Attempting to reconnect...');
       
-      // Attempt to reconnect
       if (reason === "transport close" || reason === "transport error") {
         setTimeout(() => {
           newSocket.connect();
@@ -186,7 +179,6 @@ const PlayPage = () => {
   
     return () => {
       if (newSocket) {
-        // Only cancel matchmaking if we're still searching
         if (isSearching) {
           newSocket.emit('cancelMatchmaking');
         }
@@ -195,10 +187,8 @@ const PlayPage = () => {
     };
   }, [location.search, navigate]);
 
-
   useEffect(() => {
     if (bothPlayersReady && !gameOver) {
-      // Add a small delay before starting the timer
       const startDelay = setTimeout(() => {
         const interval = setInterval(() => {
           if (currentPlayer === 'white') {
@@ -223,7 +213,7 @@ const PlayPage = () => {
         }, 1000);
         
         setTimerInterval(interval);
-      }, 1000); // 1 second delay before starting
+      }, 1000);
   
       return () => {
         clearTimeout(startDelay);
@@ -271,7 +261,6 @@ const PlayPage = () => {
       newBoard[to.row][to.col] = piece;
       newBoard[from.row][from.col] = '';
       
-      // Check if the game is over (if the king was captured)
       const capturedPiece = prevBoard[to.row][to.col];
       if (capturedPiece === 'wk' || capturedPiece === 'bk') {
         setGameOver(true);
@@ -280,16 +269,11 @@ const PlayPage = () => {
       return newBoard;
     });
     
-    // Toggle current player
     setLastMove({ from, to });
     setCurrentPlayer(prev => prev === 'white' ? 'black' : 'white');
   };
   
-  // Add these new states
-  
-  // Add this function to check if a king is in check
   const isKingUnderAttack = (boardState, kingColor) => {
-    // Find king's position
     let kingRow, kingCol;
     const kingPiece = kingColor === 'white' ? 'wk' : 'bk';
     
@@ -303,7 +287,6 @@ const PlayPage = () => {
       }
     }
     
-    // Check if any opponent piece can attack the king
     for (let i = 0; i < 8; i++) {
       for (let j = 0; j < 8; j++) {
         const piece = boardState[i][j];
@@ -317,22 +300,18 @@ const PlayPage = () => {
     return false;
   };
   
-  // Modify handleSquareClick to include check validation
   const handleSquareClick = (row, col) => {
-    // Don't allow moves if game is over or not the player's turn
     if (gameOver || currentPlayer !== playerColor || !bothPlayersReady) return;
     
     const piece = board[row][col];
     const pieceColor = getPieceColor(piece);
     setErrorMessage("");
     
-    // First click - select piece
     if (!selectedPiece && pieceColor === currentPlayer) {
       setSelectedPiece({ row, col, piece });
       return;
     }
     
-    // First click - wrong color
     if (!selectedPiece && pieceColor !== currentPlayer) {
       if (piece) {
         setErrorMessage(`It's ${currentPlayer}'s turn to play`);
@@ -340,37 +319,32 @@ const PlayPage = () => {
       return;
     }
     
-    // Second click - same square, deselect
     if (selectedPiece && row === selectedPiece.row && col === selectedPiece.col) {
       setSelectedPiece(null);
+      setLastMove(null);
       return;
     }
     
-    // Second click - friendly piece, change selection
     if (selectedPiece && pieceColor === currentPlayer) {
       setSelectedPiece({ row, col, piece });
+      setLastMove(null);
       return;
     }
     
-    // Second click - attempt to move
-    // Inside handleSquareClick, update the move validation section:
     if (selectedPiece) {
       if (isValidMove(board, selectedPiece.row, selectedPiece.col, row, col, currentPlayer)) {
         const newBoard = [...board.map(row => [...row])];
         const capturedPiece = newBoard[row][col];
         
-        // Make temporary move
         newBoard[row][col] = selectedPiece.piece;
         newBoard[selectedPiece.row][selectedPiece.col] = '';
         
-        // Check if this move would leave/put own king in check
         if (isKingUnderAttack(newBoard, currentPlayer)) {
           setErrorMessage("Invalid move: This would put your king in check!");
           setSelectedPiece(null);
           return;
         }
         
-        // Emit move to opponent through socket
         if (socket && matchDetails) {
           socket.emit('chessMove', {
             roomId: matchDetails.roomId,
@@ -379,18 +353,15 @@ const PlayPage = () => {
           });
         }
         
-        // Check if game is over (king captured)
         if (capturedPiece === 'wk' || capturedPiece === 'bk') {
           setGameOver(true);
           setWinner(currentPlayer);
           
-          // Add blood animation class to the captured square
           const square = document.querySelector(`[data-position="${row}-${col}"]`);
           if (square) {
             square.classList.add('king-death');
           }
           
-          // Emit match result
           if (socket && matchDetails) {
             const currentUser = JSON.parse(localStorage.getItem('user'));
             socket.emit('matchResult', {
@@ -403,7 +374,6 @@ const PlayPage = () => {
           }
         }
     
-        // Update board and game state
         setBoard(newBoard);
         setSelectedPiece(null);
         setLastMove({
@@ -411,7 +381,6 @@ const PlayPage = () => {
           to: { row, col }
         });
         
-        // Check if opponent's king is in check after move
         const oppositeColor = currentPlayer === 'white' ? 'black' : 'white';
         const isCheck = isKingUnderAttack(newBoard, oppositeColor);
         setIsKingInCheck(isCheck);
@@ -421,7 +390,6 @@ const PlayPage = () => {
         
         setCurrentPlayer(currentPlayer === 'white' ? 'black' : 'white');
       } else {
-        // Invalid move
         const pieceType = selectedPiece.piece[1];
         let message = "Invalid move for ";
         switch(pieceType) {
@@ -446,25 +414,24 @@ const PlayPage = () => {
     setWinner(null);
     setBothPlayersReady(false);
     setIsPlayerReady(false);
+    setLastMove(null);
   };
 
   const getDisplayBoard = () => {
     if (playerColor === 'black') {
-      // Reverse the board for black player
       return [...board].reverse().map(row => [...row].reverse());
     }
     return board;
   };
   
-  // Render different states based on game progress
   const renderGameStatus = () => {
     if (isSearching) {
       return (
-        <div className="text-center p-6">
-          <div className="mb-4 text-xl">Connecting with the opponent...</div>
+        <div className="text-center p-4 sm:p-6 bg-white rounded-lg shadow-md mb-6">
+          <div className="mb-4 text-lg sm:text-xl">Connecting with the opponent...</div>
           <Button 
             onClick={cancelSearching} 
-            className="bg-red-600 hover:bg-red-700"
+            className="bg-red-600 hover:bg-red-700 text-sm sm:text-base"
           >
             Cancel
           </Button>
@@ -474,15 +441,15 @@ const PlayPage = () => {
     
     if (matchDetails && !isPlayerReady) {
       return (
-        <div className="text-center p-6">
+        <div className="text-center p-4 sm:p-6 bg-white rounded-lg shadow-md mb-6">
           <div className="mb-4">
-            <div className="text-xl font-bold mb-2">Match Found!</div>
-            <div>Opponent: {opponentInfo?.name} (Rating: {opponentInfo?.rating})</div>
-            <div>You're playing as: {playerColor === 'white' ? 'White ⚪' : 'Black ⚫'}</div>
+            <div className="text-lg sm:text-xl font-bold mb-2">Match Found!</div>
+            <div className="text-sm sm:text-base">Opponent: {opponentInfo?.name} (Rating: {opponentInfo?.rating})</div>
+            <div className="text-sm sm:text-base">You're playing as: {playerColor === 'white' ? 'White ⚪' : 'Black ⚫'}</div>
           </div>
           <Button 
             onClick={markPlayerReady} 
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-green-600 hover:bg-green-700 text-sm sm:text-base"
           >
             Ready to Play
           </Button>
@@ -492,18 +459,18 @@ const PlayPage = () => {
     
     if (matchDetails && isPlayerReady && !bothPlayersReady) {
       return (
-        <div className="text-center p-6">
-          <div className="text-xl">Waiting for opponent to be ready...</div>
+        <div className="text-center p-4 sm:p-6 bg-white rounded-lg shadow-md mb-6">
+          <div className="text-lg sm:text-xl">Waiting for opponent to be ready...</div>
         </div>
       );
     }
     
     if (!matchDetails && !isSearching) {
       return (
-        <div className="text-center p-6">
+        <div className="text-center p-4 sm:p-6 bg-white rounded-lg shadow-md mb-6">
           <Button 
             onClick={startSearching} 
-            className="bg-purple-600 hover:bg-purple-700"
+            className="bg-purple-600 hover:bg-purple-700 text-sm sm:text-base"
           >
             CONNECT 
           </Button>
@@ -516,50 +483,48 @@ const PlayPage = () => {
   
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+      {/* Header - Responsive Design */}
+      <header className="bg-white shadow-sm sticky top-0 z-10">
+        <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3 flex justify-between items-center">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center">
-              <span className="text-white text-xl">♔</span>
+            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-800 rounded-full flex items-center justify-center">
+              <span className="text-white text-sm sm:text-xl">♔</span>
             </div>
-            <h1 className="text-xl font-bold">ChessMaster</h1>
+            <h1 className="text-base sm:text-xl font-bold">ChessMaster</h1>
           </div>
           <Button
             onClick={() => navigate("/home")}
             variant="outline"
-            className="border-red-500 text-red-500 hover:bg-red-50"
+            size="sm"
+            className="border-red-500 text-red-500 hover:bg-red-50 text-xs sm:text-sm"
           >
             Exit Game
           </Button>
         </div>
       </header>
 
-      {/* Main Game Area */}
-      <main className="container mx-auto px-4 py-8">
+      {/* Main Game Area - Fully Responsive */}
+      <main className="container mx-auto px-2 sm:px-4 py-3 sm:py-6">
         {renderGameStatus()}
 
         {matchDetails && bothPlayersReady && (
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Left Panel - Player Info */}
-            <div className="w-full lg:w-64 space-y-4">
-              <Card className="p-4">
-                <h2 className="text-lg font-semibold mb-4">Game Info</h2>
-                
-                <div className="space-y-4">
+          <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+            {/* Left Panel - Player Info (Hidden on mobile) */}
+            <div className="hidden sm:block w-full lg:w-64 space-y-3 sm:space-y-4">
+              <Card className="p-3 sm:p-4">
+                <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Game Info</h2>
+                <div className="space-y-3">
                   <div>
-                    <p className="text-sm text-gray-500">Opponent</p>
-                    <p className="font-medium">{opponentInfo?.name}</p>
+                    <p className="text-xs sm:text-sm text-gray-500">Opponent</p>
+                    <p className="text-sm sm:text-base font-medium">{opponentInfo?.name}</p>
                   </div>
-                  
                   <div>
-                    <p className="text-sm text-gray-500">Rating</p>
-                    <p className="font-medium">{opponentInfo?.rating}</p>
+                    <p className="text-xs sm:text-sm text-gray-500">Rating</p>
+                    <p className="text-sm sm:text-base font-medium">{opponentInfo?.rating}</p>
                   </div>
-                  
                   <div>
-                    <p className="text-sm text-gray-500">You're playing as</p>
-                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                    <p className="text-xs sm:text-sm text-gray-500">You're playing as</p>
+                    <div className={`inline-flex items-center px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs sm:text-sm font-medium ${
                       playerColor === 'white' 
                         ? 'bg-gray-100 text-gray-800' 
                         : 'bg-gray-800 text-white'
@@ -571,20 +536,20 @@ const PlayPage = () => {
               </Card>
 
               {/* Timers */}
-              <Card className="p-4">
-                <h2 className="text-lg font-semibold mb-4">Timers</h2>
-                <div className="space-y-3">
-                  <div className={`p-3 rounded-lg ${
+              <Card className="p-3 sm:p-4">
+                <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Timers</h2>
+                <div className="space-y-2 sm:space-y-3">
+                  <div className={`p-2 sm:p-3 rounded-lg ${
                     currentPlayer === 'white' ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'
                   }`}>
-                    <p className="text-sm text-gray-500">White</p>
-                    <p className="text-2xl font-mono font-bold">{formatTime(whiteTime)}</p>
+                    <p className="text-xs sm:text-sm text-gray-500">White</p>
+                    <p className="text-xl sm:text-2xl font-mono font-bold">{formatTime(whiteTime)}</p>
                   </div>
-                  <div className={`p-3 rounded-lg ${
+                  <div className={`p-2 sm:p-3 rounded-lg ${
                     currentPlayer === 'black' ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'
                   }`}>
-                    <p className="text-sm text-gray-500">Black</p>
-                    <p className="text-2xl font-mono font-bold">{formatTime(blackTime)}</p>
+                    <p className="text-xs sm:text-sm text-gray-500">Black</p>
+                    <p className="text-xl sm:text-2xl font-mono font-bold">{formatTime(blackTime)}</p>
                   </div>
                 </div>
               </Card>
@@ -592,9 +557,9 @@ const PlayPage = () => {
 
             {/* Center Panel - Chess Board */}
             <div className="flex-1">
-              {/* Game Status */}
+              {/* Game Status - Responsive */}
               {(errorMessage || currentPlayer !== playerColor) && (
-                <div className={`mb-4 p-3 rounded-lg text-center ${
+                <div className={`mb-3 sm:mb-4 p-2 sm:p-3 rounded-lg text-center text-xs sm:text-sm ${
                   errorMessage 
                     ? 'bg-red-100 text-red-700' 
                     : 'bg-blue-100 text-blue-700'
@@ -603,9 +568,9 @@ const PlayPage = () => {
                 </div>
               )}
 
-              {/* Chess Board */}
-              <div className="max-w-2xl mx-auto">
-                <div className="overflow-hidden rounded-xl shadow-lg border border-gray-200">
+              {/* Chess Board - Responsive Sizing */}
+              <div className="mx-auto" style={{ maxWidth: 'min(100vw - 2rem, 500px)' }}>
+                <div className="overflow-hidden rounded-lg sm:rounded-xl border border-gray-200 shadow-md">
                   <div className="grid grid-cols-8">
                     {getDisplayBoard().map((row, displayRowIndex) =>
                       row.map((piece, displayColIndex) => {
@@ -623,7 +588,7 @@ const PlayPage = () => {
                               aspect-square flex items-center justify-center relative
                               ${isLight ? 'bg-[#f0d9b5]' : 'bg-[#b58863]'}
                               ${selectedPiece?.row === rowIndex && selectedPiece?.col === colIndex
-                                ? 'ring-2 ring-yellow-400 ring-offset-2'
+                                ? 'ring-2 ring-yellow-400 ring-offset-1 sm:ring-offset-2'
                                 : ''}
                               ${isLastMoveFrom || isLastMoveTo ? 'bg-[#f7f769]' : ''}
                               ${isKingInCheck && piece === (currentPlayer === "white" ? "wk" : "bk")
@@ -635,7 +600,7 @@ const PlayPage = () => {
                           >
                             {piece && (
                               <span className={`
-                                text-4xl md:text-5xl
+                                text-3xl sm:text-4xl md:text-5xl
                                 ${getPieceColor(piece) === "white" 
                                   ? "text-white drop-shadow-lg" 
                                   : "text-gray-900 drop-shadow-lg"}
@@ -646,10 +611,6 @@ const PlayPage = () => {
                                 {getPieceSymbol(piece)}
                               </span>
                             )}
-                            {/* Coordinates for debugging */}
-                            {/* <span className="absolute bottom-0 right-0 text-xs text-black/30">
-                              {String.fromCharCode(97 + colIndex)}{8 - rowIndex}
-                            </span> */}
                           </div>
                         );
                       })
@@ -657,30 +618,77 @@ const PlayPage = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Mobile Info Panel (Hidden on desktop) */}
+              <div className="sm:hidden mt-4 space-y-3">
+                <Card className="p-3">
+                  <h2 className="text-sm font-semibold mb-2">Game Info</h2>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-gray-500">Opponent</p>
+                      <p className="text-sm font-medium">{opponentInfo?.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Rating</p>
+                      <p className="text-sm font-medium">{opponentInfo?.rating}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">You play as</p>
+                      <p className="text-sm font-medium">
+                        {playerColor === 'white' ? 'White' : 'Black'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Turn</p>
+                      <p className="text-sm font-medium">
+                        {currentPlayer === playerColor ? 'Your move' : 'Opponent'}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-3">
+                  <h2 className="text-sm font-semibold mb-2">Timers</h2>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className={`p-2 rounded ${
+                      currentPlayer === 'white' ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'
+                    }`}>
+                      <p className="text-xs text-gray-500">White</p>
+                      <p className="text-lg font-mono font-bold">{formatTime(whiteTime)}</p>
+                    </div>
+                    <div className={`p-2 rounded ${
+                      currentPlayer === 'black' ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'
+                    }`}>
+                      <p className="text-xs text-gray-500">Black</p>
+                      <p className="text-lg font-mono font-bold">{formatTime(blackTime)}</p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
             </div>
           </div>
         )}
       </main>
 
-      {/* Game Over Dialog */}
+      {/* Game Over Dialog - Responsive */}
       <AlertDialog open={gameOver}>
-        <AlertDialogContent className="max-w-md">
+        <AlertDialogContent className="max-w-xs sm:max-w-md mx-2 sm:mx-auto">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-2xl font-bold text-center">
+            <AlertDialogTitle className="text-xl sm:text-2xl font-bold text-center">
               {winner === playerColor ? "Victory!" : "Game Over"}
             </AlertDialogTitle>
           </AlertDialogHeader>
-          <div className="py-6 text-center space-y-4">
-            <div className="text-6xl">
+          <div className="py-4 sm:py-6 text-center space-y-3 sm:space-y-4">
+            <div className="text-4xl sm:text-6xl">
               {winner === playerColor ? "🏆" : "👏"}
             </div>
-            <p className="text-lg">
+            <p className="text-sm sm:text-lg">
               {winner === playerColor
                 ? "Congratulations on your win!"
                 : "Thanks for playing!"}
             </p>
             {(whiteTime <= 0 || blackTime <= 0) && (
-              <p className="text-sm text-gray-500">
+              <p className="text-xs sm:text-sm text-gray-500">
                 Game ended by timeout
               </p>
             )}
@@ -691,7 +699,7 @@ const PlayPage = () => {
                 resetGame();
                 navigate("/home");
               }}
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-sm sm:text-base"
             >
               Return to Lobby
             </AlertDialogAction>
