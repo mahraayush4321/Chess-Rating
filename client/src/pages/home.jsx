@@ -15,6 +15,7 @@ const AddMatch = () => {
   const [error, setError] = useState(null);
   const [playerReady, setPlayerReady] = useState(false); // Track if this player is ready
   const [waitingForOpponent, setWaitingForOpponent] = useState(false); // Track if waiting for opponent
+  const [selectedTime, setSelectedTime] = useState(5);
   
   // Socket reference to prevent recreating on every render
   const socketRef = useRef(null);
@@ -32,6 +33,24 @@ const AddMatch = () => {
       });
     }
   };
+
+  const TimeOptions = () => (
+    <div className="flex justify-center gap-4 mb-6">
+      {[5, 10, 15].map(time => (
+        <button
+          key={time}
+          onClick={() => setSelectedTime(time)}
+          className={`px-4 py-2 rounded ${
+            selectedTime === time 
+              ? 'bg-purple-600 text-white' 
+              : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+          }`}
+        >
+          {time} min
+        </button>
+      ))}
+    </div>
+  );
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -117,7 +136,8 @@ const AddMatch = () => {
     
     // Emit findMatch event to server
     socketRef.current.emit('findMatch', { 
-      playerId: currentUser._id 
+      playerId: currentUser._id,
+      timeControl: selectedTime * 60
     });
     
     setIsSearching(true);
@@ -155,25 +175,25 @@ const AddMatch = () => {
       setWaitingForOpponent(true);
     }
   };
-  const ChessBoard = () => {
-    return (
-      <div className="aspect-square bg-gradient-to-r from-green-800 to-green-900 rounded-lg overflow-hidden shadow-xl">
-        <div className="grid grid-cols-8 grid-rows-8 w-full h-full">
-          {Array.from({ length: 64 }).map((_, index) => {
-            const row = Math.floor(index / 8);
-            const col = index % 8;
-            const isLight = (row + col) % 2 === 0;
-            return (
-              <div 
-                key={index} 
-                className={`${isLight ? "bg-green-200" : "bg-green-600"}`}
-              ></div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
+  // const ChessBoard = () => {
+  //   return (
+  //     <div className="aspect-square bg-gradient-to-r from-green-800 to-green-900 rounded-lg overflow-hidden shadow-xl">
+  //       <div className="grid grid-cols-8 grid-rows-8 w-full h-full">
+  //         {Array.from({ length: 64 }).map((_, index) => {
+  //           const row = Math.floor(index / 8);
+  //           const col = index % 8;
+  //           const isLight = (row + col) % 2 === 0;
+  //           return (
+  //             <div 
+  //               key={index} 
+  //               className={`${isLight ? "bg-green-200" : "bg-green-600"}`}
+  //             ></div>
+  //           );
+  //         })}
+  //       </div>
+  //     </div>
+  //   );
+  // };
 
 
   return (
@@ -190,7 +210,7 @@ const AddMatch = () => {
             <div className="text-center">
               <h1 className="text-5xl font-bold mb-8">Play Chess Online</h1>
               <h2 className="text-3xl font-bold mb-6">on the #1 Site!</h2>
-              
+              <TimeOptions />
             </div>
             
             {/* Play buttons */}

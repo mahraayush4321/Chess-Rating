@@ -23,6 +23,77 @@ const PlayPage = () => {
   const [bothPlayersReady, setBothPlayersReady] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isKingInCheck, setIsKingInCheck] = useState(false);
+  const [whiteTime, setWhiteTime] = useState(0);
+  const [blackTime, setBlackTime] = useState(0);
+  const [timerInterval, setTimerInterval] = useState(null);
+  
+  useEffect(() => {
+    if (matchDetails?.timeControl) {
+      setWhiteTime(matchDetails.timeControl);
+      setBlackTime(matchDetails.timeControl);
+    }
+  }, [matchDetails]);
+
+  useEffect(() => {
+    if (bothPlayersReady && !gameOver) {
+      const interval = setInterval(() => {
+        if (currentPlayer === 'white') {
+          setWhiteTime(prev => {
+            if (prev <= 0) {
+              clearInterval(interval);
+              handleTimeOut('white');
+              return 0;
+            }
+            return prev - 1;
+          });
+        } else {
+          setBlackTime(prev => {
+            if (prev <= 0) {
+              clearInterval(interval);
+              handleTimeOut('black');
+              return 0;
+            }
+            return prev - 1;
+          });
+        }
+      }, 1000);
+  
+      setTimerInterval(interval);
+      return () => clearInterval(interval);
+    }
+  }, [currentPlayer, bothPlayersReady, gameOver]);
+
+
+  const handleTimeOut = (color) => {
+    setGameOver(true);
+    setWinner(color === 'white' ? 'black' : 'white');
+    
+    if (socket && matchDetails) {
+      const currentUser = JSON.parse(localStorage.getItem('user'));
+      socket.emit('matchResult', {
+        matchId: matchDetails.matchId,
+        roomId: matchDetails.roomId,
+        winner: color === playerColor ? opponentInfo.id : currentUser._id,
+        loser: color === playerColor ? currentUser._id : opponentInfo.id,
+        isDraw: false,
+        byTimeout: true
+      });
+    }
+  };
+
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+      }
+    };
+  }, [timerInterval]);
   
   
   useEffect(() => {
@@ -36,6 +107,7 @@ const PlayPage = () => {
       navigate('/');
       return;
     }
+
   
     const newSocket = io('https://chess-rating.onrender.com', {
       transports: ['websocket', 'polling'],
@@ -401,18 +473,34 @@ const PlayPage = () => {
       <h1 className="bg-gradient-to-r from-purple-400 via-pink-500 to-amber-500 bg-clip-text text-4xl font-bold text-transparent">
         Chess Game
       </h1>
-      
+
       {renderGameStatus()}
-      
+
       {matchDetails && bothPlayersReady && (
         <div className="flex flex-col items-center justify-center gap-4">
           <Card className="border-none bg-zinc-800/50 p-6">
             <div className="mb-4 text-center font-bold text-lg">
+              <div
+                className={`${
+                  currentPlayer === "white" ? "text-yellow-400" : ""
+                }`}
+              >
+                White: {formatTime(whiteTime)}
+              </div>
+              <div
+                className={`${
+                  currentPlayer === "black" ? "text-yellow-400" : ""
+                }`}
+              >
+                Black: {formatTime(blackTime)}
+              </div>
               <div className="text-white">
-                {gameOver 
-                  ? `Game Over! ${winner === 'white' ? 'White' : 'Black'} wins!` 
-                  : `Current Turn: ${currentPlayer === 'white' ? 'White' : 'Black'}`
-                }
+                {gameOver && (
+                  <div className="text-center text-xl font-bold">
+                    Game Over! {winner === "white" ? "White" : "Black"} wins
+                    {whiteTime <= 0 || blackTime <= 0 ? " by timeout!" : "!"}
+                  </div>
+                )}
                 {currentPlayer !== playerColor && !gameOver && (
                   <div className="mt-1 text-sm font-normal text-yellow-400">
                     Waiting for opponent's move...
@@ -431,43 +519,78 @@ const PlayPage = () => {
               )}
             </div>
             <div className="grid grid-cols-8 border border-zinc-700">
-  {getDisplayBoard().map((row, displayRowIndex) => (
-    row.map((piece, displayColIndex) => {
-      const rowIndex = playerColor === 'black' ? 7 - displayRowIndex : displayRowIndex;
-      const colIndex = playerColor === 'black' ? 7 - displayColIndex : displayColIndex;
-      
-      return (
-        <div
-          key={`${rowIndex}-${colIndex}`}
-          data-position={`${rowIndex}-${colIndex}`}
-          className={`
+              {getDisplayBoard().map((row, displayRowIndex) =>
+                row.map((piece, displayColIndex) => {
+                  const rowIndex =
+                    playerColor === "black"
+                      ? 7 - displayRowIndex
+                      : displayRowIndex;
+                  const colIndex =
+                    playerColor === "black"
+                      ? 7 - displayColIndex
+                      : displayColIndex;
+
+                  return (
+                    <div
+                      key={`${rowIndex}-${colIndex}`}
+                      data-position={`${rowIndex}-${colIndex}`}
+                      className={`
             w-12 h-12 flex items-center justify-center text-3xl cursor-pointer
-            ${(displayRowIndex + displayColIndex) % 2 === 0 ? 'bg-zinc-700' : 'bg-zinc-800'}
-            ${selectedPiece && selectedPiece.row === rowIndex && selectedPiece.col === colIndex ? 'bg-purple-600/50' : ''}
-            ${currentPlayer === playerColor ? 'hover:bg-purple-500/20' : ''}
-            ${isKingInCheck && piece === (currentPlayer === 'white' ? 'wk' : 'bk') ? 'bg-red-600/50' : ''}
+            ${
+              (displayRowIndex + displayColIndex) % 2 === 0
+                ? "bg-zinc-700"
+                : "bg-zinc-800"
+            }
+            ${
+              selectedPiece &&
+              selectedPiece.row === rowIndex &&
+              selectedPiece.col === colIndex
+                ? "bg-purple-600/50"
+                : ""
+            }
+            ${currentPlayer === playerColor ? "hover:bg-purple-500/20" : ""}
+            ${
+              isKingInCheck &&
+              piece === (currentPlayer === "white" ? "wk" : "bk")
+                ? "bg-red-600/50"
+                : ""
+            }
             transition-all duration-300
           `}
-          onClick={() => handleSquareClick(rowIndex, colIndex)}
-        >
-          <span className={`
-            ${getPieceColor(piece) === 'white' ? 'text-gray-200' : 'text-gray-900'}
-            ${piece === 'wk' || piece === 'bk' ? 'transition-transform duration-500' : ''}
-            ${gameOver && (piece === 'wk' || piece === 'bk') ? 'animate-fall' : ''}
-          `}>
-            {getPieceSymbol(piece)}
-          </span>
-        </div>
-      );
-    })
-  ))}
-</div>
+                      onClick={() => handleSquareClick(rowIndex, colIndex)}
+                    >
+                      <span
+                        className={`
+            ${
+              getPieceColor(piece) === "white"
+                ? "text-gray-200"
+                : "text-gray-900"
+            }
+            ${
+              piece === "wk" || piece === "bk"
+                ? "transition-transform duration-500"
+                : ""
+            }
+            ${
+              gameOver && (piece === "wk" || piece === "bk")
+                ? "animate-fall"
+                : ""
+            }
+          `}
+                      >
+                        {getPieceSymbol(piece)}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </Card>
-          
+
           <div className="flex gap-4">
-            <Button 
-              onClick={() => navigate('/home')} 
-              variant="outline" 
+            <Button
+              onClick={() => navigate("/home")}
+              variant="outline"
               className="border-purple-500 bg-transparent text-purple-400 hover:bg-purple-950/30"
             >
               Back to Home
@@ -475,22 +598,27 @@ const PlayPage = () => {
           </div>
         </div>
       )}
-      
+
       <AlertDialog open={gameOver}>
         <AlertDialogContent className="bg-zinc-800 border-zinc-700">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Game Over!</AlertDialogTitle>
+            <AlertDialogTitle className="text-white">
+              Game Over!
+            </AlertDialogTitle>
           </AlertDialogHeader>
           <div className="text-center py-4 text-zinc-300">
-            {winner === playerColor 
-              ? 'You won the game!' 
-              : 'Your opponent won the game!'}
+            {winner === playerColor
+              ? "You won the game!"
+              : "Your opponent won the game!"}
           </div>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => {
-              resetGame();
-              navigate('/home');
-            }} className="bg-purple-600 hover:bg-purple-700">
+            <AlertDialogAction
+              onClick={() => {
+                resetGame();
+                navigate("/home");
+              }}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
               Back to Home
             </AlertDialogAction>
           </AlertDialogFooter>
