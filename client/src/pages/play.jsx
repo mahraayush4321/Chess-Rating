@@ -24,85 +24,60 @@ const PlayPage = () => {
   const [isSearching, setIsSearching] = useState(false);
   
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const matchId = params.get('matchId');
-    const roomId = params.get('roomId');
-    const currentUser = JSON.parse(localStorage.getItem('user'));
-  
-    if (!matchId || !roomId || !currentUser) {
-      console.error('Missing required parameters or user data');
-      navigate('/');
-      return;
-    }
-  
-    const newSocket = io('https://chess-rating.onrender.com', {
-      transports: ['websocket', 'polling'],
-      withCredentials: true,
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      timeout: 60000,
-      query: { // Add query parameters
-        matchId,
-        roomId,
-        playerId: currentUser._id
-      }
-    });
-    
+    // Initialize socket connection
+    const newSocket = io('http://localhost:4000');
     setSocket(newSocket);
     
-    newSocket.on('connect', () => {
-      console.log('Connected to game server');
-      // Join match room immediately after connection
-      newSocket.emit('joinMatch', {
-        matchId,
-        roomId,
-        playerId: currentUser._id
-      });
-    });
-
-    // Add connection error handler
-    newSocket.on('connect_error', (error) => {
-      console.error('Connection error:', error);
-      setErrorMessage('Failed to connect to game server. Retrying...');
-    });
-
+    // Get current user from localStorage
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+    
+    // Socket event listeners
     newSocket.on('matchFound', (details) => {
-      console.log('Match details received:', details);
-      // Update URL with match details
-      const searchParams = new URLSearchParams();
-      searchParams.set('matchId', details.matchId);
-      searchParams.set('roomId', details.roomId);
-      navigate(`${location.pathname}?${searchParams.toString()}`, { replace: true });
-      
+      console.log('Match found:', details);
       setMatchDetails(details);
       setPlayerColor(details.color);
       setOpponentInfo(details.opponent);
       setIsSearching(false);
     });
-  
-    newSocket.on('disconnect', (reason) => {
-      console.log('Socket disconnected:', reason);
-      setErrorMessage('Connection lost. Attempting to reconnect...');
-      
-      // Attempt to reconnect
-      if (reason === "transport close" || reason === "transport error") {
-        setTimeout(() => {
-          newSocket.connect();
-        }, 1000);
+    
+    newSocket.on('matchmaking', (data) => {
+      console.log('Matchmaking status:', data);
+      if (data.status === 'searching') {
+        setIsSearching(true);
+      } else if (data.status === 'cancelled') {
+        setIsSearching(false);
       }
     });
-  
+    
+    newSocket.on('opponentMove', (data) => {
+      console.log('Opponent move received:', data);
+      handleOpponentMove(data.from, data.to);
+    });
+    
+    newSocket.on('matchError', (error) => {
+      console.error('Match error:', error);
+      setErrorMessage(error.message);
+    });
+    
+    newSocket.on('bothPlayersReady', (data) => {
+      console.log('Both players ready:', data);
+      setBothPlayersReady(true);
+    });
+    
+    newSocket.on('matchEnded', (data) => {
+      console.log('Match ended:', data);
+      setGameOver(true);
+      setWinner(data.winner);
+    });
+    
     return () => {
+      // Cancel matchmaking when component unmounts
       if (newSocket) {
-        // Only cancel matchmaking if we're still searching
-        if (isSearching) {
-          newSocket.emit('cancelMatchmaking');
-        }
+        newSocket.emit('cancelMatchmaking');
         newSocket.disconnect();
       }
     };
-  }, [location.search, navigate]);
+  }, []);
   
   const startSearching = () => {
     if (!socket) return;

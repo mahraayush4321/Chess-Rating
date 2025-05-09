@@ -220,44 +220,6 @@ const initSocketHandlers = (io) => {
         });
       }
     });
-    socket.on('joinMatch', async (data) => {
-      const { matchId, roomId, playerId } = data;
-      console.log(`Player ${playerId} joining match ${matchId} in room ${roomId}`);
-      
-      try {
-        // Join the room
-        await socket.join(roomId);
-        
-        // Find the match
-        const match = await Match.findById(matchId);
-        if (!match) {
-          return socket.emit('matchError', { message: 'Match not found' });
-        }
-        
-        // Get player details
-        const player = await Player.findById(playerId);
-        const opponent = await Player.findById(
-          match.player1.toString() === playerId ? match.player2 : match.player1
-        );
-        
-        // Send match details to the player
-        socket.emit('matchFound', {
-          matchId,
-          roomId,
-          color: match.player1.toString() === playerId ? 'white' : 'black',
-          opponent: {
-            id: opponent._id,
-            name: opponent.name,
-            rating: opponent.rating
-          }
-        });
-        
-        console.log(`Player ${player.name} successfully joined match ${matchId}`);
-      } catch (error) {
-        console.error('Error joining match:', error);
-        socket.emit('matchError', { message: 'Failed to join match' });
-      }
-    });
   });
 };
 
@@ -266,26 +228,18 @@ async function findMatchForPlayer(socket, player) {
   const playerId = player._id.toString();
   const playerRating = player.rating;
   
-  console.log(`Attempting to find match for player ${player.name} (${playerRating})`);
-  console.log(`Current queue size: ${matchmakingQueue.size}`);
-  
   // Find potential opponents within rating range
   const potentialOpponents = [...matchmakingQueue.entries()]
     .filter(([id, data]) => {
       // Skip self
-      if (id === playerId) {
-        console.log('Skipping self match');
-        return false;
-      }
+      if (id === playerId) return false;
       
       // Check rating range (within -50 to +100 of player's rating)
       const ratingDiff = Math.abs(data.rating - playerRating);
-      console.log(`Potential opponent ${data.name} (${data.rating}), rating diff: ${ratingDiff}`);
       return ratingDiff <= 100;
     })
+    // Sort by time in queue (first in, first matched)
     .sort((a, b) => a[1].joinedAt - b[1].joinedAt);
-
-  console.log(`Found ${potentialOpponents.length} potential opponents`);
 
   // If we found a match
   if (potentialOpponents.length > 0) {
@@ -294,16 +248,13 @@ async function findMatchForPlayer(socket, player) {
     // Get opponent socket
     const opponentSocket = socket.server.sockets.sockets.get(opponentData.socketId);
     if (!opponentSocket) {
-      console.log(`Opponent socket not found for ${opponentData.name}, removing from queue`);
+      // Opponent socket not found, remove from queue
       matchmakingQueue.delete(opponentId);
       return;
     }
     
-    // Inside findMatchForPlayer function, update the match creation process
     try {
-      console.log(`Attempting to create match between ${player.name} and ${opponentData.name}`);
-      
-      // Remove both players from queue FIRST to prevent double matching
+      // Remove both players from queue
       matchmakingQueue.delete(playerId);
       matchmakingQueue.delete(opponentId);
       
@@ -314,9 +265,13 @@ async function findMatchForPlayer(socket, player) {
       ]);
       
       if (!playerDoc || !opponent) {
-        console.log('Player or opponent not found in database');
         return socket.emit('matchError', { message: 'Player or opponent not found' });
       }
+      
+      // Reset searching status
+      playerDoc.isSearchingMatch = false;
+      opponent.isSearchingMatch = false;
+      await Promise.all([playerDoc.save(), opponent.save()]);
       
       // Create new match in database
       const match = new Match({
@@ -328,25 +283,30 @@ async function findMatchForPlayer(socket, player) {
       });
       await match.save();
       
+      // Create unique room for this match
       const roomId = `match_${match._id}`;
-      console.log(`Created match room: ${roomId}`);
       
-      // Determine colors
+      // Join both players to room
+      socket.join(roomId);
+      opponentSocket.join(roomId);
+      
+      // Determine colors (randomly)
       const player1Color = Math.random() > 0.5 ? 'white' : 'black';
       const player2Color = player1Color === 'white' ? 'black' : 'white';
       
-      // Send match details immediately without setTimeout
+      // Notify first player
       socket.emit('matchFound', {
         matchId: match._id.toString(),
         roomId,
         opponent: {
-          id: opponentId,
+          id: opponentId, 
           name: opponent.name || `${opponent.firstName} ${opponent.lastName}`,
           rating: opponent.rating
         },
         color: player1Color
       });
       
+      // Notify second player
       opponentSocket.emit('matchFound', {
         matchId: match._id.toString(),
         roomId,
@@ -358,31 +318,12 @@ async function findMatchForPlayer(socket, player) {
         color: player2Color
       });
       
-      // Join rooms after emitting match details
-      await Promise.all([
-        socket.join(roomId),
-        opponentSocket.join(roomId)
-      ]);
-      
-      console.log(`Successfully created match between ${playerDoc.name} and ${opponent.name}`);
+      console.log(`Match created: ${match._id}, Player1: ${playerDoc.name || playerDoc.firstName} vs Player2: ${opponent.name || opponent.firstName}`);
     } catch (error) {
       console.error('Error creating match:', error);
-      // Put players back in queue if match creation fails
-      matchmakingQueue.set(playerId, {
-        socketId: socket.id,
-        rating: playerRating,
-        name: player.name,
-        joinedAt: new Date()
-      });
-      matchmakingQueue.set(opponentId, opponentData);
-      socket.emit('matchError', { message: 'Failed to create match, retrying...' });
+      socket.emit('matchError', { message: 'Failed to create match' });
     }
-  } else {
-    console.log(`No suitable opponents found for ${player.name} (${playerRating})`);
   }
 }
-
-// Move joinMatch handler inside connection scope
-
 
 module.exports = initSocketHandlers;
