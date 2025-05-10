@@ -137,7 +137,7 @@ const Profile = () => {
     return (
       <>
         <Header />
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
+        <div className="min-h-screen bg-black flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
         </div>
       </>
@@ -147,9 +147,9 @@ const Profile = () => {
   return (
     <>
       <Header />
-      <div className="min-h-screen mt-10 bg-gradient-to-br from-gray-900 to-gray-800 p-4 md:p-8">
+      <div className="min-h-screen mt-10 bg-black p-4 md:p-8">
         {/* Profile Header */}
-        <div className="bg-gray-800 rounded-xl p-6 mb-8 shadow-2xl border border-gray-700 backdrop-blur-sm bg-opacity-80">
+        <div className="bg-black rounded-xl p-6 mb-8 shadow-2xl border border-gray-700 backdrop-blur-sm bg-opacity-80">
           <div className="flex flex-col md:flex-row items-start gap-6">
             {/* Profile Image */}
             <div className="relative group w-32 h-32 md:w-40 md:h-40">
@@ -252,17 +252,17 @@ const Profile = () => {
             </div>
 
             {/* Stats Display */}
-            <div className="bg-gradient-to-br from-gray-700 to-gray-800 p-4 rounded-xl shadow-lg border border-gray-600 w-full md:w-48">
+            <div className="bg-black p-4 rounded-xl shadow-lg border border-gray-600 w-full md:w-48">
               <div className="text-center">
                 <div className="text-3xl font-bold text-amber-400 mb-1">{user?.rating || 1200}</div>
                 <div className="text-xs text-gray-400 uppercase tracking-wider">Current Rating</div>
                 <div className="mt-3 flex justify-center">
-                  <div className="text-sm px-3 py-1 bg-gray-600/50 rounded-full text-amber-300 flex items-center">
+                  {/* <div className="text-sm px-3 py-1 bg-gray-600/50 rounded-full text-amber-300 flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                     </svg>
                     {user?.ratingChange || 0}
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </div>
@@ -272,7 +272,7 @@ const Profile = () => {
         {/* Game History and Stats Row */}
         <div className="flex flex-col lg:flex-row w-full gap-6 mb-8">
           {/* Game History Section */}
-          <div className="bg-gray-800 rounded-xl p-6 flex-grow shadow-xl border border-gray-700 backdrop-blur-sm bg-opacity-80">
+          <div className="bg-black rounded-xl p-6 flex-grow shadow-xl border border-gray-700 backdrop-blur-sm bg-opacity-80">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl md:text-2xl font-bold text-white">
                 Game History <span className="text-amber-400">({gameHistory.length})</span>
@@ -337,7 +337,7 @@ const Profile = () => {
           </div>
 
           {/* Stats Section */}
-          <div className="bg-gray-800 rounded-xl p-6 w-full lg:w-80 shadow-xl border border-gray-700 backdrop-blur-sm bg-opacity-80">
+          <div className="bg-black rounded-xl p-6 w-full lg:w-80 shadow-xl border border-gray-700 backdrop-blur-sm bg-opacity-80">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl md:text-2xl font-bold text-white">Statistics</h2>
               <button className="text-gray-400 hover:text-white transition-colors">
@@ -414,7 +414,7 @@ const Profile = () => {
       {/* Profile Picture Upload Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md border border-gray-700 shadow-2xl">
+          <div className="bg-black rounded-xl p-6 w-full max-w-md border border-gray-700 shadow-2xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold text-white">Update Profile Picture</h3>
               <button 
@@ -480,7 +480,7 @@ const Profile = () => {
       {/* Edit Profile Modal */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md border border-gray-700 shadow-2xl">
+          <div className="bg-black rounded-xl p-6 w-full max-w-md border border-gray-700 shadow-2xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold text-white">Edit Profile</h3>
               <button 
@@ -504,7 +504,7 @@ const Profile = () => {
                   type="text"
                   value={editForm.name}
                   onChange={handleEditChange}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full bg-black rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-zinc-200"
                 />
               </div>
               
@@ -518,7 +518,7 @@ const Profile = () => {
                   value={editForm.bio}
                   onChange={handleEditChange}
                   rows="3"
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full bg-black rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-zinc-200"
                 />
               </div>
             </div>
