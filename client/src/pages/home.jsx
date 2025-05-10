@@ -18,6 +18,8 @@ const AddMatch = () => {
   const [waitingForOpponent, setWaitingForOpponent] = useState(false); // Track if waiting for opponent
   const [selectedTime, setSelectedTime] = useState(5);
   const navigate = useNavigate();
+
+
   
   // Socket reference to prevent recreating on every render
   const socketRef = useRef(null);
@@ -242,7 +244,7 @@ const AddMatch = () => {
   return (
   <>
     <Header />
-    <div className="min-h-screen bg-zinc-900 text-white">
+    <div className="min-h-screen bg-black text-white">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         {/* Main chess board and play options */}
         <div className="flex flex-col lg:flex-row items-center justify-center gap-8 py-8 md:py-12">

@@ -194,6 +194,7 @@ const PlayPage = () => {
   
 
 
+
     newSocket.on('connect_error', (error) => {
       console.error('Connection error:', error);
       // Not showing connection error message anymore
@@ -303,19 +304,20 @@ const PlayPage = () => {
   const handleResign = () => {
     if (!socket || !matchDetails || gameOver) return;
     
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+    
     setGameOver(true);
     setWinner(playerColor === 'white' ? 'black' : 'white');
     
-    const currentUser = JSON.parse(localStorage.getItem('user'));
     socket.emit('matchResult', {
       matchId: matchDetails.matchId,
       roomId: matchDetails.roomId,
-      winner: opponentInfo.id,
-      loser: currentUser._id,
+      winner: opponentInfo.id,       
+      loser: currentUser._id,     
       isDraw: false,
       byResignation: true
     });
-  };
+};
   
   const handleOpponentMove = (from, to) => {
     setBoard(prevBoard => {

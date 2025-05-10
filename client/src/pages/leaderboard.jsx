@@ -45,7 +45,7 @@ const Leaderboard = () => {
     return (
       <>
         <Header />
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
+        <div className="min-h-screen bg-black flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
         </div>
       </>
@@ -77,12 +77,12 @@ const Leaderboard = () => {
   return (
     <>
       <Header />
-      <div className="min-h-screen bg-zinc-900 p-4">
+      <div className="min-h-screen bg-black p-4">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6">
           {/* Main Leaderboard Table */}
           <div className="w-full lg:flex-1">
             <h1 className="text-2xl font-bold text-white mb-4">Top Players</h1>
-            <div className="bg-zinc-800 rounded-lg overflow-x-auto">
+            <div className=" rounded-lg overflow-x-auto">
               <table className="w-full min-w-[600px]">
                 <thead className="bg-zinc-700">
                   <tr className="text-left text-gray-300">
@@ -106,7 +106,7 @@ const Leaderboard = () => {
                       <td className="p-3 sm:p-4 text-gray-400">#{index + 1}</td>
                       <td className="p-3 sm:p-4">
                         <div className="flex items-center gap-2 sm:gap-3">
-                          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-zinc-600 rounded-full flex items-center justify-center text-xs sm:text-base">
+                          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-fuchsia-300 rounded-full flex items-center justify-center text-xs sm:text-base">
                             {player.name?.charAt(0).toUpperCase() || '?'}
                           </div>
                           <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
@@ -135,7 +135,7 @@ const Leaderboard = () => {
 
           {/* Right Sidebar - Player Stats */}
           <div className="w-full lg:w-80">
-            <div className="bg-zinc-800 rounded-lg p-4 lg:sticky lg:top-4">
+            <div className=" rounded-lg p-4 lg:sticky lg:top-4">
               <h2 className="text-xl text-white mb-4">Your Stats</h2>
               
               {currentUser ? (
@@ -147,7 +147,7 @@ const Leaderboard = () => {
                       </span>
                     </div>
                     <h2 className="text-white text-lg sm:text-xl mb-1 truncate">
-                      {currentUser.username || 'Player'}
+                      {currentUser.firstName|| 'Player'}
                     </h2>
                     <div className="text-3xl sm:text-4xl font-bold text-white mb-4">
                       {userStats?.rating || currentUser.rating || 'Unrated'}
