@@ -20,30 +20,30 @@ const Profile = () => {
     if (!matches || matches.length === 0) return 0;
     
     let currentStreak = 0;
-    let lastResult = null;
     
     // Sort matches by date in descending order (most recent first)
     const sortedMatches = [...matches].sort((a, b) => 
       new Date(b.datePlayed) - new Date(a.datePlayed)
     );
     
+    // Get the first completed match result
+    const firstMatch = sortedMatches.find(match => match.status === 'completed');
+    if (!firstMatch) return 0;
+    
+    const isFirstMatchWin = (firstMatch.player1._id === userId && firstMatch.result === 'win') || 
+                           (firstMatch.player2._id === userId && firstMatch.result === 'loss');
+    
+    // Count consecutive matches with the same result
     for (const match of sortedMatches) {
       if (match.status !== 'completed') continue;
       
-      const isPlayer1 = match.player1._id === userId;
-      const isWin = (match.result === 'win' && isPlayer1) || 
-                   (match.result === 'win' && !isPlayer1);
-      
-      if (lastResult === null) {
-        // First completed match
-        lastResult = isWin;
-        currentStreak = isWin ? 1 : -1;
-      } else if (isWin === lastResult) {
-        // Continuing streak
-        currentStreak += isWin ? 1 : -1;
+      const isWin = (match.player1._id === userId && match.result === 'win') || 
+                   (match.player2._id === userId && match.result === 'loss');
+                   
+      if (isWin === isFirstMatchWin) {
+        currentStreak += isFirstMatchWin ? 1 : -1;
       } else {
-        // Streak broken
-        break;
+        break; // Streak ends when we find a different result
       }
     }
     
