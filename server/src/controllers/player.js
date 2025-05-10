@@ -173,10 +173,17 @@ class Player {
                 return res.status(400).json({ message: 'Player ID is required' });
             }
             
-            const player = await playerModel.findById(id)
-                .populate('matches')
-                .populate('followers', 'name')
-                .populate('following', 'name');
+            const player = await playerModel
+              .findById(id)
+              .populate({
+                path: "matches",
+                populate: [
+                  { path: "player1", select: "name" },
+                  { path: "player2", select: "name" },
+                ],
+              })
+              .populate("followers", "name")
+              .populate("following", "name");
                 
             if (!player) {
                 return res.status(404).json({ message: 'Player not found' });
