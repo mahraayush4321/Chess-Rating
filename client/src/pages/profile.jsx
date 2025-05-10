@@ -34,22 +34,35 @@ const Profile = () => {
         if (data.matches) {
           setGameHistory(data.matches.map(match => {
             const isPlayer1 = match.player1 === userData._id;
+            
+            // Determine game result from current user's perspective
             let result;
             if (match.result === 'draw') {
-              result = 'draw';
+              result = 'Draw';
+            } else if (match.result === 'ongoing') {
+              result = 'Ongoing';
             } else {
-              result = isPlayer1 ? 
-                (match.result === 'win' ? 'win' : 'loss') :
-                (match.result === 'win' ? 'loss' : 'win');
+              result = (isPlayer1 && match.result === 'win') || 
+                      (!isPlayer1 && match.result !== 'win') ? 'Win' : 'Loss';
             }
-            
+
+            // Format duration
+            let durationText = 'N/A';
+            if (match.duration) {
+              const minutes = Math.floor(match.duration / 60);
+              const seconds = match.duration % 60;
+              durationText = `${minutes}m ${seconds}s`;
+            }
+
             return {
               id: match._id,
-              opponent: isPlayer1 ? match.player2.name : match.player1.name,
+              opponent: isPlayer1 ? `Player ${match.player2.substring(0, 6)}` : 
+                                     `Player ${match.player1.substring(0, 6)}`,
               result: result,
-              moves: match.moves || '-',
+              moves: match.moves ? match.moves.length : 0,
               date: new Date(match.datePlayed).toLocaleDateString(),
-              duration: match.duration || 'NaN min' 
+              duration: durationText,
+              status: match.status || 'completed'
             };
           }));
         
