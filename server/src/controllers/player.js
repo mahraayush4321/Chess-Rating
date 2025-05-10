@@ -165,6 +165,30 @@ class Player {
             res.status(500).json({error:error.message})
         }
     }
+   
+    getPlayerById = async (req, res) => {
+        try {
+            const { id } = req.params;
+            if (!id) {
+                return res.status(400).json({ message: 'Player ID is required' });
+            }
+            
+            const player = await playerModel.findById(id)
+                .populate('matches')
+                .populate('followers', 'name')
+                .populate('following', 'name');
+                
+            if (!player) {
+                return res.status(404).json({ message: 'Player not found' });
+            }
+            
+            res.status(200).json(player);
+        } catch (error) {
+            console.error('Error fetching player by ID:', error);
+            res.status(500).json({ error: error.message });
+        }
+    }
 }
 
 module.exports = new Player();
+

@@ -1,6 +1,7 @@
 // src/socket/matchmakingHandler.js
 const Player = require('../models/players');
 const Match = require('../models/match');
+const { calculateElo } = require('../helpers/ratingAlgorithms');
 
 // Store active players looking for matches
 const matchmakingQueue = new Map();
@@ -121,7 +122,7 @@ const initSocketHandlers = (io) => {
     // Handle match result
     socket.on('matchResult', async (data) => {
       try {
-        const { matchId, winner, loser, isDraw } = data;
+        const { matchId, winner, loser, isDraw, roomId } = data;
         console.log(`Match result received for ${matchId}:`, data);
         
         const match = await Match.findById(matchId);
@@ -132,47 +133,84 @@ const initSocketHandlers = (io) => {
         
         // Update match result
         match.result = isDraw ? 'draw' : 'win';
-        match.winner = isDraw ? null : winner;
+        match.status = 'completed';
         match.endDate = new Date();
         await match.save();
         
-        // Update player ratings if this was a ranked match
-        if (match.matchType === 'ranked' && !isDraw) {
+        // Get both players
+        const player1 = await Player.findById(match.player1);
+        const player2 = await Player.findById(match.player2);
+        
+        if (!player1 || !player2) {
+          console.error('One or both players not found');
+          return socket.emit('matchError', { message: 'Player(s) not found' });
+        }
+        
+        // Determine winner and loser IDs if not a draw
+        let winnerId, loserId;
+        if (!isDraw) {
+          winnerId = winner;
+          loserId = loser;
+        }
+        
+        // Calculate ELO changes and update player stats
+        if (match.matchType === 'ranked') {
           try {
-            // Get both players
-            const winnerPlayer = await Player.findById(winner);
-            const loserPlayer = await Player.findById(loser);
+            // Calculate scores
+            const p1Score = isDraw ? 0.5 : (match.player1.toString() === winnerId ? 1 : 0);
+            const p2Score = isDraw ? 0.5 : (match.player2.toString() === winnerId ? 1 : 0);
             
-            if (winnerPlayer && loserPlayer) {
-              // Calculate ELO change (simple version)
-              const expectedScore = 1 / (1 + Math.pow(10, (loserPlayer.rating - winnerPlayer.rating) / 400));
-              const kFactor = 32; // Standard K-factor
-              const ratingChange = Math.round(kFactor * (1 - expectedScore));
-              
-              // Update ratings
-              winnerPlayer.rating += ratingChange;
-              loserPlayer.rating -= ratingChange;
-              
-              // Update match history counts
-              winnerPlayer.matchesWon += 1;
-              loserPlayer.matchesLost += 1;
-              
-              // Save changes
-              await Promise.all([winnerPlayer.save(), loserPlayer.save()]);
-              
-              console.log(`Updated ratings: Winner ${winner} +${ratingChange}, Loser ${loser} -${ratingChange}`);
+            // Update ratings
+            player1.rating = calculateElo(player1.rating, player2.rating, p1Score);
+            player2.rating = calculateElo(player2.rating, player1.rating, p2Score);
+            
+            // Update match statistics
+            player1.totalMatches += 1;
+            player2.totalMatches += 1;
+            
+            if (isDraw) {
+              player1.draws += 1;
+              player2.draws += 1;
+            } else if (match.player1.toString() === winnerId) {
+              player1.wins += 1;
+              player2.losses += 1;
+            } else {
+              player1.losses += 1;
+              player2.wins += 1;
             }
+            
+            // Add match to both players' history if not already there
+            if (!player1.matches.includes(matchId)) {
+              player1.matches.push(matchId);
+            }
+            if (!player2.matches.includes(matchId)) {
+              player2.matches.push(matchId);
+            }
+            
+            // Save player changes
+            await Promise.all([player1.save(), player2.save()]);
+            
+            console.log(`Updated player stats for match ${matchId}`);
           } catch (ratingError) {
             console.error('Error updating player ratings:', ratingError);
-            // Continue even if rating update fails
           }
         }
         
         // Emit result to both players in the room
-        io.to(data.roomId).emit('matchEnded', {
+        io.to(roomId).emit('matchEnded', {
           matchId,
           result: isDraw ? 'draw' : 'win',
-          winner: isDraw ? null : winner
+          winner: isDraw ? null : winner,
+          player1: {
+            id: player1._id,
+            name: player1.name,
+            newRating: player1.rating
+          },
+          player2: {
+            id: player2._id,
+            name: player2.name,
+            newRating: player2.rating
+          }
         });
         
         // Clean up active game data
@@ -328,6 +366,15 @@ async function findMatchForPlayer(socket, player) {
       });
       await match.save();
       
+      // Add match to both players' match history
+      playerDoc.matches.push(match._id);
+      opponent.matches.push(match._id);
+      
+      // Update player statuses and save
+      playerDoc.isSearchingMatch = false;
+      opponent.isSearchingMatch = false;
+      await Promise.all([playerDoc.save(), opponent.save()]);
+      
       const roomId = `match_${match._id}`;
       console.log(`Created match room: ${roomId}`);
       
@@ -381,8 +428,6 @@ async function findMatchForPlayer(socket, player) {
     console.log(`No suitable opponents found for ${player.name} (${playerRating})`);
   }
 }
-
-// Move joinMatch handler inside connection scope
 
 
 module.exports = initSocketHandlers;

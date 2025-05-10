@@ -156,6 +156,44 @@ const PlayPage = () => {
       }
     });
 
+    newSocket.on('matchEnded', (data) => {
+      console.log('Match ended:', data);
+      setGameOver(true);
+      
+      if (data.isDraw) {
+        setWinner(null);
+      } else {
+        const currentUser = JSON.parse(localStorage.getItem('user'));
+        setWinner(data.winner === currentUser._id ? playerColor : (playerColor === 'white' ? 'black' : 'white'));
+      }
+      
+      // You can also display updated ratings
+      if (data.player1 && data.player2) {
+        const currentUser = JSON.parse(localStorage.getItem('user'));
+        const isPlayer1 = data.player1.id === currentUser._id;
+        
+        // Update local state with new ratings if needed
+        if (isPlayer1 && opponentInfo) {
+          setOpponentInfo({
+            ...opponentInfo,
+            rating: data.player2.newRating
+          });
+        } else if (opponentInfo) {
+          setOpponentInfo({
+            ...opponentInfo,
+            rating: data.player1.newRating
+          });
+        }
+      }
+    });
+
+    newSocket.on('matchError', (error) => {
+      console.error('Match error:', error);
+      setErrorMessage(error.message || 'An error occurred with the match');
+    });
+  
+
+
     newSocket.on('connect_error', (error) => {
       console.error('Connection error:', error);
       // Not showing connection error message anymore
@@ -260,6 +298,23 @@ const PlayPage = () => {
     });
     
     setIsPlayerReady(true);
+  };
+
+  const handleResign = () => {
+    if (!socket || !matchDetails || gameOver) return;
+    
+    setGameOver(true);
+    setWinner(playerColor === 'white' ? 'black' : 'white');
+    
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+    socket.emit('matchResult', {
+      matchId: matchDetails.matchId,
+      roomId: matchDetails.roomId,
+      winner: opponentInfo.id,
+      loser: currentUser._id,
+      isDraw: false,
+      byResignation: true
+    });
   };
   
   const handleOpponentMove = (from, to) => {
@@ -511,6 +566,15 @@ const PlayPage = () => {
         </div>
       </header>
 
+        <Button
+          onClick={handleResign}
+          variant="outline"
+          className="w-full mt-2 border-red-500 text-red-500 hover:bg-red-50"
+          disabled={!bothPlayersReady || gameOver}
+        >
+          Resign
+        </Button>
+
       {/* Main Game Area - Fully Responsive */}
       <main className="container mx-auto px-2 sm:px-4 py-3 sm:py-6">
         {renderGameStatus()}
@@ -520,24 +584,34 @@ const PlayPage = () => {
             {/* Left Panel - Player Info (Hidden on mobile) */}
             <div className="hidden sm:block w-full lg:w-64 space-y-3 sm:space-y-4">
               <Card className="p-3 sm:p-4">
-                <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Game Info</h2>
+                <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
+                  Game Info
+                </h2>
                 <div className="space-y-3">
                   <div>
                     <p className="text-xs sm:text-sm text-gray-500">Opponent</p>
-                    <p className="text-sm sm:text-base font-medium">{opponentInfo?.name}</p>
+                    <p className="text-sm sm:text-base font-medium">
+                      {opponentInfo?.name}
+                    </p>
                   </div>
                   <div>
                     <p className="text-xs sm:text-sm text-gray-500">Rating</p>
-                    <p className="text-sm sm:text-base font-medium">{opponentInfo?.rating}</p>
+                    <p className="text-sm sm:text-base font-medium">
+                      {opponentInfo?.rating}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-xs sm:text-sm text-gray-500">You're playing as</p>
-                    <div className={`inline-flex items-center px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs sm:text-sm font-medium ${
-                      playerColor === 'white' 
-                        ? 'bg-gray-100 text-gray-800' 
-                        : 'bg-gray-800 text-white'
-                    }`}>
-                      {playerColor === 'white' ? 'White' : 'Black'}
+                    <p className="text-xs sm:text-sm text-gray-500">
+                      You're playing as
+                    </p>
+                    <div
+                      className={`inline-flex items-center px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs sm:text-sm font-medium ${
+                        playerColor === "white"
+                          ? "bg-gray-100 text-gray-800"
+                          : "bg-gray-800 text-white"
+                      }`}
+                    >
+                      {playerColor === "white" ? "White" : "Black"}
                     </div>
                   </div>
                 </div>
@@ -545,19 +619,33 @@ const PlayPage = () => {
 
               {/* Timers */}
               <Card className="p-3 sm:p-4">
-                <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Timers</h2>
+                <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
+                  Timers
+                </h2>
                 <div className="space-y-2 sm:space-y-3">
-                  <div className={`p-2 sm:p-3 rounded-lg ${
-                    currentPlayer === 'white' ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'
-                  }`}>
+                  <div
+                    className={`p-2 sm:p-3 rounded-lg ${
+                      currentPlayer === "white"
+                        ? "bg-blue-50 border border-blue-200"
+                        : "bg-gray-50"
+                    }`}
+                  >
                     <p className="text-xs sm:text-sm text-gray-500">White</p>
-                    <p className="text-xl sm:text-2xl font-mono font-bold">{formatTime(whiteTime)}</p>
+                    <p className="text-xl sm:text-2xl font-mono font-bold">
+                      {formatTime(whiteTime)}
+                    </p>
                   </div>
-                  <div className={`p-2 sm:p-3 rounded-lg ${
-                    currentPlayer === 'black' ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'
-                  }`}>
+                  <div
+                    className={`p-2 sm:p-3 rounded-lg ${
+                      currentPlayer === "black"
+                        ? "bg-blue-50 border border-blue-200"
+                        : "bg-gray-50"
+                    }`}
+                  >
                     <p className="text-xs sm:text-sm text-gray-500">Black</p>
-                    <p className="text-xl sm:text-2xl font-mono font-bold">{formatTime(blackTime)}</p>
+                    <p className="text-xl sm:text-2xl font-mono font-bold">
+                      {formatTime(blackTime)}
+                    </p>
                   </div>
                 </div>
               </Card>
@@ -566,16 +654,19 @@ const PlayPage = () => {
             {/* Center Panel - Chess Board */}
             <div className="flex-1">
               {/* Game Status - Responsive */}
-              {(errorMessage || (currentPlayer !== playerColor && !showTurnAlert)) && (
-                <div className={`mb-3 sm:mb-4 p-2 sm:p-3 rounded-lg text-center text-xs sm:text-sm ${
-                  errorMessage 
-                    ? 'bg-red-100 text-red-700' 
-                    : 'bg-blue-100 text-blue-700'
-                }`}>
+              {(errorMessage ||
+                (currentPlayer !== playerColor && !showTurnAlert)) && (
+                <div
+                  className={`mb-3 sm:mb-4 p-2 sm:p-3 rounded-lg text-center text-xs sm:text-sm ${
+                    errorMessage
+                      ? "bg-red-100 text-red-700"
+                      : "bg-blue-100 text-blue-700"
+                  }`}
+                >
                   {errorMessage || "Waiting for opponent's move..."}
                 </div>
               )}
-              
+
               {/* Your Turn Alert */}
               {showTurnAlert && currentPlayer === playerColor && (
                 <Alert className="mb-3 sm:mb-4 bg-green-100 text-green-800 border-green-300">
@@ -586,16 +677,33 @@ const PlayPage = () => {
               )}
 
               {/* Chess Board - Responsive Sizing with Fixed Width on Desktop */}
-              <div className="mx-auto" style={{ maxWidth: 'min(100vw - 2rem, 500px)', width: '100%' }}>
+              <div
+                className="mx-auto"
+                style={{ maxWidth: "min(100vw - 2rem, 500px)", width: "100%" }}
+              >
                 <div className="overflow-hidden rounded-lg sm:rounded-xl border border-gray-200 shadow-md">
-                  <div className="grid grid-cols-8 w-full" style={{ contain: 'layout' }}>
+                  <div
+                    className="grid grid-cols-8 w-full"
+                    style={{ contain: "layout" }}
+                  >
                     {getDisplayBoard().map((row, displayRowIndex) =>
                       row.map((piece, displayColIndex) => {
-                        const rowIndex = playerColor === "black" ? 7 - displayRowIndex : displayRowIndex;
-                        const colIndex = playerColor === "black" ? 7 - displayColIndex : displayColIndex;
-                        const isLight = (displayRowIndex + displayColIndex) % 2 === 0;
-                        const isLastMoveFrom = lastMove?.from.row === rowIndex && lastMove?.from.col === colIndex;
-                        const isLastMoveTo = lastMove?.to.row === rowIndex && lastMove?.to.col === colIndex;
+                        const rowIndex =
+                          playerColor === "black"
+                            ? 7 - displayRowIndex
+                            : displayRowIndex;
+                        const colIndex =
+                          playerColor === "black"
+                            ? 7 - displayColIndex
+                            : displayColIndex;
+                        const isLight =
+                          (displayRowIndex + displayColIndex) % 2 === 0;
+                        const isLastMoveFrom =
+                          lastMove?.from.row === rowIndex &&
+                          lastMove?.from.col === colIndex;
+                        const isLastMoveTo =
+                          lastMove?.to.row === rowIndex &&
+                          lastMove?.to.col === colIndex;
 
                         return (
                           <div
@@ -603,28 +711,54 @@ const PlayPage = () => {
                             data-position={`${rowIndex}-${colIndex}`}
                             className={`
                               aspect-square flex items-center justify-center relative
-                              ${isLight ? 'bg-[#f0d9b5]' : 'bg-[#b58863]'}
-                              ${selectedPiece?.row === rowIndex && selectedPiece?.col === colIndex
-                                ? 'ring-2 ring-yellow-400 ring-offset-1 sm:ring-offset-2'
-                                : ''}
-                              ${isLastMoveFrom || isLastMoveTo ? 'bg-[#f7f769]' : ''}
-                              ${isKingInCheck && piece === (currentPlayer === "white" ? "wk" : "bk")
-                                ? 'bg-red-200' : ''}
-                              ${currentPlayer === playerColor && !piece ? 'cursor-pointer hover:bg-opacity-80' : ''}
+                              ${isLight ? "bg-[#f0d9b5]" : "bg-[#b58863]"}
+                              ${
+                                selectedPiece?.row === rowIndex &&
+                                selectedPiece?.col === colIndex
+                                  ? "ring-2 ring-yellow-400 ring-offset-1 sm:ring-offset-2"
+                                  : ""
+                              }
+                              ${
+                                isLastMoveFrom || isLastMoveTo
+                                  ? "bg-[#f7f769]"
+                                  : ""
+                              }
+                              ${
+                                isKingInCheck &&
+                                piece ===
+                                  (currentPlayer === "white" ? "wk" : "bk")
+                                  ? "bg-red-200"
+                                  : ""
+                              }
+                              ${
+                                currentPlayer === playerColor && !piece
+                                  ? "cursor-pointer hover:bg-opacity-80"
+                                  : ""
+                              }
                               transition-colors duration-150
                             `}
-                            onClick={() => handleSquareClick(rowIndex, colIndex)}
+                            onClick={() =>
+                              handleSquareClick(rowIndex, colIndex)
+                            }
                           >
                             {piece && (
-                              <span className={`
+                              <span
+                                className={`
                                 text-3xl sm:text-4xl md:text-5xl
-                                ${getPieceColor(piece) === "white" 
-                                  ? "text-white drop-shadow-lg" 
-                                  : "text-gray-900 drop-shadow-lg"}
-                                ${selectedPiece?.row === rowIndex && selectedPiece?.col === colIndex
-                                  ? 'scale-110' : ''}
+                                ${
+                                  getPieceColor(piece) === "white"
+                                    ? "text-white drop-shadow-lg"
+                                    : "text-gray-900 drop-shadow-lg"
+                                }
+                                ${
+                                  selectedPiece?.row === rowIndex &&
+                                  selectedPiece?.col === colIndex
+                                    ? "scale-110"
+                                    : ""
+                                }
                                 transition-transform duration-100
-                              `}>
+                              `}
+                              >
                                 {getPieceSymbol(piece)}
                               </span>
                             )}
@@ -643,22 +777,28 @@ const PlayPage = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <p className="text-xs text-gray-500">Opponent</p>
-                      <p className="text-sm font-medium">{opponentInfo?.name}</p>
+                      <p className="text-sm font-medium">
+                        {opponentInfo?.name}
+                      </p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Rating</p>
-                      <p className="text-sm font-medium">{opponentInfo?.rating}</p>
+                      <p className="text-sm font-medium">
+                        {opponentInfo?.rating}
+                      </p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">You play as</p>
                       <p className="text-sm font-medium">
-                        {playerColor === 'white' ? 'White' : 'Black'}
+                        {playerColor === "white" ? "White" : "Black"}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Turn</p>
                       <p className="text-sm font-medium">
-                        {currentPlayer === playerColor ? 'Your move' : 'Opponent'}
+                        {currentPlayer === playerColor
+                          ? "Your move"
+                          : "Opponent"}
                       </p>
                     </div>
                   </div>
@@ -667,17 +807,29 @@ const PlayPage = () => {
                 <Card className="p-3">
                   <h2 className="text-sm font-semibold mb-2">Timers</h2>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className={`p-2 rounded ${
-                      currentPlayer === 'white' ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'
-                    }`}>
+                    <div
+                      className={`p-2 rounded ${
+                        currentPlayer === "white"
+                          ? "bg-blue-50 border border-blue-200"
+                          : "bg-gray-50"
+                      }`}
+                    >
                       <p className="text-xs text-gray-500">White</p>
-                      <p className="text-lg font-mono font-bold">{formatTime(whiteTime)}</p>
+                      <p className="text-lg font-mono font-bold">
+                        {formatTime(whiteTime)}
+                      </p>
                     </div>
-                    <div className={`p-2 rounded ${
-                      currentPlayer === 'black' ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'
-                    }`}>
+                    <div
+                      className={`p-2 rounded ${
+                        currentPlayer === "black"
+                          ? "bg-blue-50 border border-blue-200"
+                          : "bg-gray-50"
+                      }`}
+                    >
                       <p className="text-xs text-gray-500">Black</p>
-                      <p className="text-lg font-mono font-bold">{formatTime(blackTime)}</p>
+                      <p className="text-lg font-mono font-bold">
+                        {formatTime(blackTime)}
+                      </p>
                     </div>
                   </div>
                 </Card>
@@ -692,22 +844,44 @@ const PlayPage = () => {
         <AlertDialogContent className="max-w-xs sm:max-w-md mx-2 sm:mx-auto">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-xl sm:text-2xl font-bold text-center">
-              {winner === playerColor ? "Victory!" : "Game Over"}
+              {winner === playerColor
+                ? "Victory!"
+                : winner === null
+                ? "Draw"
+                : "Game Over"}
             </AlertDialogTitle>
           </AlertDialogHeader>
           <div className="py-4 sm:py-6 text-center space-y-3 sm:space-y-4">
             <div className="text-4xl sm:text-6xl">
-              {winner === playerColor ? "🏆" : "👏"}
+              {winner === playerColor ? "🏆" : winner === null ? "🤝" : "👏"}
             </div>
             <p className="text-sm sm:text-lg">
               {winner === playerColor
                 ? "Congratulations on your win!"
+                : winner === null
+                ? "The game ended in a draw"
                 : "Thanks for playing!"}
             </p>
             {(whiteTime <= 0 || blackTime <= 0) && (
               <p className="text-xs sm:text-sm text-gray-500">
                 Game ended by timeout
               </p>
+            )}
+
+            {/* Add rating information if available */}
+            {opponentInfo && (
+              <div className="mt-4 text-sm">
+                <p>
+                  Your new rating:{" "}
+                  <span className="font-semibold">
+                    {/* Add your updated rating here */}
+                  </span>
+                </p>
+                <p>
+                  Opponent's rating:{" "}
+                  <span className="font-semibold">{opponentInfo.rating}</span>
+                </p>
+              </div>
             )}
           </div>
           <AlertDialogFooter className="sm:justify-center">

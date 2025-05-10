@@ -16,24 +16,52 @@ class Matchplayer {
     
             const p1Score = result === 'win' ? 1 : result === 'draw' ? 0.5 : 0;
             const p2Score = 1 - p1Score;
-
+    
+            // Update ratings
             p1.rating = calculateElo(p1.rating, p2.rating, p1Score);
             p2.rating = calculateElo(p2.rating, p1.rating, p2Score);
-
+    
+            // Update match statistics
             p1.totalMatches += 1;
             p2.totalMatches += 1;
     
-            await p1.save();
-            await p2.save();
+            if (result === 'win') {
+                p1.wins += 1;
+                p2.losses += 1;
+            } else if (result === 'loss') {
+                p1.losses += 1;
+                p2.wins += 1;
+            } else {
+                p1.draws += 1;
+                p2.draws += 1;
+            }
     
-            const match = new Match({ player1, player2, result,  datePlayed: matchDate });
+            // Create and save the match
+            const match = new Match({ 
+                player1, 
+                player2, 
+                result, 
+                datePlayed: matchDate,
+                matchType: 'ranked'
+            });
             await match.save();
-
+    
+            // Add match to both players' history
             p1.matches.push(match._id);
             p2.matches.push(match._id);
+    
+            // Save all changes
             await Promise.all([p1.save(), p2.save()]);
             
-            res.status(201).json({ message: 'Match saved', match });
+            // Return populated match data
+            const populatedMatch = await Match.findById(match._id)
+                .populate('player1', 'name rating')
+                .populate('player2', 'name rating');
+    
+            res.status(201).json({ 
+                message: 'Match saved', 
+                match: populatedMatch 
+            });
         } catch (err) {
             res.status(500).json({ error: err.message });
         }
@@ -305,6 +333,66 @@ class Matchplayer {
             res.status(500).json({ error: error.message });
         }
     };
+
+    getPlayerMatchHistory = async (req, res) => {
+        try {
+            const { id } = req.params;
+            const player = await Player.findById(id).populate({
+                path: 'matches',
+                populate: [
+                    {
+                        path: 'player1',
+                        select: 'name rating country'
+                    },
+                    {
+                        path: 'player2',
+                        select: 'name rating country'
+                    }
+                ],
+                select: 'player1 player2 result datePlayed matchType status'
+            });
+    
+            if (!player) {
+                return res.status(404).json({ message: 'Player not found' });
+            }
+    
+            // Transform matches data to be more user-friendly
+            const matchHistory = player.matches.map(match => {
+                const isPlayer1 = match.player1._id.toString() === id;
+                const opponent = isPlayer1 ? match.player2 : match.player1;
+                let result = match.result;
+                
+                // Translate result from match perspective to player perspective
+                if (result === 'win' && !isPlayer1) {
+                    result = 'loss';
+                } else if (result === 'loss' && !isPlayer1) {
+                    result = 'win';
+                }
+                
+                return {
+                    id: match._id,
+                    opponent: {
+                        id: opponent._id,
+                        name: opponent.name,
+                        rating: opponent.rating,
+                        country: opponent.country
+                    },
+                    result: result,
+                    datePlayed: match.datePlayed,
+                    matchType: match.matchType || 'casual',
+                    status: match.status
+                };
+            });
+    
+            res.status(200).json({ 
+                playerName: player.name,
+                totalMatches: player.matches.length,
+                matchHistory 
+            });
+        } catch (error) {
+            res.status(500).json({error: error.message});
+        }
+    }
 }
 
 module.exports = new Matchplayer();

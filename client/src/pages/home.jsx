@@ -85,6 +85,27 @@ const AddMatch = () => {
         navigate(`/play?matchId=${details.matchId}&roomId=${details.roomId}&timeControl=${selectedTime * 60}`);
       });
 
+      socketRef.current.on("matchmaking", (data) => {
+        console.log("Matchmaking status:", data);
+        setMatchStatus(data.status);
+        if (data.status === "searching") {
+          setIsSearching(true);
+        } else if (data.status === "cancelled") {
+          setIsSearching(false);
+          setMatchStatus("idle");
+        }
+      });
+
+      ('matchEnded', (data) => {
+        console.log('Match ended with data:', data);
+        
+        // If we want to update the UI with the match result
+        if (currentUser) {
+          // Refresh player data to get updated matches
+          fetchPlayerData(currentUser._id);
+        }
+      });
+  
       socketRef.current.on('matchmaking', (data) => {
         console.log('Matchmaking status:', data);
         setMatchStatus(data.status);
@@ -95,6 +116,7 @@ const AddMatch = () => {
           setMatchStatus('idle');
         }
       });
+  
 
       socketRef.current.on('disconnect', (reason) => {
         console.log('Socket disconnected:', reason);
@@ -117,6 +139,25 @@ const AddMatch = () => {
       }
     };
   }, []);
+
+  const fetchPlayerData = async (userId) => {
+    try {
+      const response = await fetch(`https://chess-rating.onrender.com/api/v1/player/${userId}`);
+      const data = await response.json();
+      
+      if (data) {
+        // Update local storage with fresh player data
+        localStorage.setItem('user', JSON.stringify(data));
+        setCurrentUser(data);
+        
+        // Log to verify matches are populated
+        console.log('Updated player data:', data);
+        console.log('Player matches:', data.matches ? data.matches.length : 0);
+      }
+    } catch (err) {
+      console.error("Failed to fetch player data:", err);
+    }
+  };
 
   const fetchSuitableOpponents = async (userId) => {
     try {
