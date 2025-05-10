@@ -142,7 +142,7 @@ const AddMatch = () => {
 
   const fetchPlayerData = async (userId) => {
     try {
-      const response = await fetch(`https://chess-rating.onrender.com/api/v1/player/${userId}`);
+      const response = await fetch(`https://chess-rating.onrender.com/api/v1/${userId}`);
       const data = await response.json();
       
       if (data) {

@@ -29,7 +29,7 @@ dbHelper.createConnection().then(()=>{
     console.log('failed to connect to db',err);
 });
 
-cronJob.scheduleRatingUpdate();
+// cronJob.scheduleRatingUpdate();
 
 app.use(CONST.API_PREFIX, loadRoutes);
 
