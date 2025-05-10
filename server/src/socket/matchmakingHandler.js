@@ -134,7 +134,7 @@ const initSocketHandlers = (io) => {
         // Update match result
         match.result = isDraw ? 'draw' : 'win';
         match.status = 'completed';
-        match.endDate = new Date();
+        match.endTime = new Date();
         await match.save();
         
         // Get both players
@@ -224,7 +224,7 @@ const initSocketHandlers = (io) => {
     });
 
     // Handle player ready status
-    socket.on('playerReady', (data) => {
+    socket.on('playerReady', async (data) => {
       const { matchId, roomId, playerId } = data;
       console.log(`Player ${playerId} ready for match ${matchId}`);
       
@@ -239,6 +239,11 @@ const initSocketHandlers = (io) => {
       
       // Check if both players are ready
       if (matchReadyPlayers.size === 2) {
+        const match = await Match.findById(matchId);
+        if (match) {
+          match.startTime = new Date();
+          await match.save();
+        }
         console.log(`Both players are ready for match ${matchId}, starting game`);
         
         // Both players are ready, emit event to start the game
@@ -294,6 +299,31 @@ const initSocketHandlers = (io) => {
       } catch (error) {
         console.error('Error joining match:', error);
         socket.emit('matchError', { message: 'Failed to join match' });
+      }
+    });
+    socket.on('recordMove', async (data) => {
+      try {
+        const { matchId, move } = data;
+        
+        // Find and update the match
+        const match = await Match.findById(matchId);
+        if (!match) {
+          return socket.emit('matchError', { message: 'Match not found' });
+        }
+        
+        // Add the move to the match history
+        if (!match.moves) {
+          match.moves = [];
+        }
+        match.moves.push(move);
+        await match.save();
+        
+        // Broadcast the recorded move to both players
+        socket.to(data.roomId).emit('moveRecorded', { move });
+        
+      } catch (error) {
+        console.error('Error recording move:', error);
+        socket.emit('matchError', { message: 'Failed to record move' });
       }
     });
   });

@@ -32,18 +32,30 @@ const Profile = () => {
         });
         
         if (data.matches) {
-          setGameHistory(data.matches.map(match => ({
-            id: match._id,
-            opponent: match.player1._id === userData._id ? match.player2.name : match.player1.name,
-            result: match.result,
-            moves: match.moves || '-',
-            date: new Date(match.datePlayed).toLocaleDateString(),
-            duration: `${match.timeControl / 60} min`
-          })));
-        }
+          setGameHistory(data.matches.map(match => {
+            const isPlayer1 = match.player1 === userData._id;
+            let result;
+            if (match.result === 'draw') {
+              result = 'draw';
+            } else {
+              result = isPlayer1 ? 
+                (match.result === 'win' ? 'win' : 'loss') :
+                (match.result === 'win' ? 'loss' : 'win');
+            }
+            
+            return {
+              id: match._id,
+              opponent: isPlayer1 ? match.player2.name : match.player1.name,
+              result: result,
+              moves: match.moves || '-',
+              date: new Date(match.datePlayed).toLocaleDateString(),
+              duration: match.duration || 'NaN min' 
+            };
+          }));
         
-        if (data.profilePicture) {
-          setPreviewUrl(data.profilePicture);
+          if (data.profilePicture) {
+            setPreviewUrl(data.profilePicture);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch user data:", err);

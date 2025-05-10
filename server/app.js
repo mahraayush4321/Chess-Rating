@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const dbHelper = require('./src/helpers/dbHelper');
 const CONST = require('./src/helpers/constants');
 const loadRoutes = require('./src/routes')
-const cronJob = require('./src/helpers/cronJob');
+// const cronJob = require('./src/helpers/cronJob');
 const app = express();
 const cors = require('cors');
 

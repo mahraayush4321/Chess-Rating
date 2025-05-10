@@ -6,6 +6,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogFooter, 
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { pieces, initialBoard, getPieceSymbol, getPieceColor, isValidMove } from '../utils/chess';
 import io from 'socket.io-client';
+import { analyzeMoves } from '../services/mlService';
+import { boardToFEN } from '../utils/fen';
 
 const PlayPage = () => {
   const location = useLocation();
@@ -29,6 +31,8 @@ const PlayPage = () => {
   const [timerInterval, setTimerInterval] = useState(null);
   const [lastMove, setLastMove] = useState(null);
   const [showTurnAlert, setShowTurnAlert] = useState(false);
+  const [moveHistory, setMoveHistory] = useState([]);
+
   
   useEffect(() => {
     if (matchDetails?.timeControl) {
@@ -65,6 +69,90 @@ const PlayPage = () => {
       return () => clearInterval(interval);
     }
   }, [currentPlayer, bothPlayersReady, gameOver]);
+
+  const toChessNotation = (row, col) => {
+    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    const ranks = ['8', '7', '6', '5', '4', '3', '2', '1'];
+    return `${files[col]}${ranks[row]}`;
+  };
+
+  const recordMove = (from, to, piece, capturedPiece, isCheck) => {
+    const moveData = {
+      timestamp: new Date().toISOString(),
+      piece: piece,
+      from: toChessNotation(from.row, from.col),
+      to: toChessNotation(to.row, to.col),
+      player: currentPlayer,
+      capturedPiece: capturedPiece || null,
+      isCheck: isCheck || false,
+      fen: boardToFEN(board),
+      timeRemaining: currentPlayer === 'white' ? whiteTime : blackTime
+    };
+    
+    setMoveHistory(prev => [...prev, moveData]);
+    
+    // Send move data to server
+    if (socket && matchDetails) {
+      socket.emit('recordMove', {
+        matchId: matchDetails.matchId,
+        move: moveData
+      });
+    }
+  };
+
+  const sendMovesToMLModel = async () => {
+    try {
+      const currentUser = JSON.parse(localStorage.getItem('user'));
+      
+      const gameData = {
+        matchId: matchDetails.matchId,
+        moves: moveHistory,
+        gameMetadata: {
+          totalMoves: moveHistory.length,
+          gameDuration: Math.floor((Date.now() - matchDetails.startTime) / 1000),
+          timeControl: matchDetails.timeControl,
+          result: winner === null ? 'draw' : (winner === playerColor ? 'win' : 'loss')
+        },
+        players: {
+          white: playerColor === 'white' ? {
+            id: currentUser._id,
+            rating: currentUser.rating,
+            timeRemaining: whiteTime
+          } : {
+            id: opponentInfo.id,
+            rating: opponentInfo.rating,
+            timeRemaining: whiteTime
+          },
+          black: playerColor === 'black' ? {
+            id: currentUser._id,
+            rating: currentUser.rating,
+            timeRemaining: blackTime
+          } : {
+            id: opponentInfo.id,
+            rating: opponentInfo.rating,
+            timeRemaining: blackTime
+          }
+        }
+      };
+  
+      const analysis = await analyzeMoves(gameData);
+      
+      // Handle the analysis response
+      if (analysis.predictions) {
+        console.log('Move Analysis:', analysis);
+        // You can store the analysis or update UI based on the response
+        // For example:
+        if (analysis.recommendations) {
+          // Store recommendations for later review
+          localStorage.setItem(`analysis_${matchDetails.matchId}`, JSON.stringify(analysis));
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error analyzing moves:', error);
+      // Handle error appropriately
+    }
+  };
 
   const handleTimeOut = (color) => {
     if (!bothPlayersReady) return;
@@ -156,7 +244,7 @@ const PlayPage = () => {
       }
     });
 
-    newSocket.on('matchEnded', (data) => {
+    newSocket.on('matchEnded', async (data) => {
       console.log('Match ended:', data);
       setGameOver(true);
       
@@ -166,6 +254,7 @@ const PlayPage = () => {
         const currentUser = JSON.parse(localStorage.getItem('user'));
         setWinner(data.winner === currentUser._id ? playerColor : (playerColor === 'white' ? 'black' : 'white'));
       }
+      await sendMovesToMLModel();
       
       // You can also display updated ratings
       if (data.player1 && data.player2) {
@@ -323,6 +412,14 @@ const PlayPage = () => {
       const piece = newBoard[from.row][from.col];
       newBoard[to.row][to.col] = piece;
       newBoard[from.row][from.col] = '';
+
+      recordMove(
+        from,
+        to,
+        piece,
+        capturedPiece,
+        isKingUnderAttack(newBoard, currentPlayer)
+      );
       
       const capturedPiece = prevBoard[to.row][to.col];
       if (capturedPiece === 'wk' || capturedPiece === 'bk') {
@@ -407,6 +504,19 @@ const PlayPage = () => {
           setSelectedPiece(null);
           return;
         }
+
+        const isOpponentKingInCheck = isKingUnderAttack(
+          newBoard,
+          currentPlayer === 'white' ? 'black' : 'white'
+        );
+        
+        recordMove(
+          { row: selectedPiece.row, col: selectedPiece.col },
+          { row, col },
+          selectedPiece.piece,
+          capturedPiece,
+          isOpponentKingInCheck
+        );
         
         if (socket && matchDetails) {
           socket.emit('chessMove', {
