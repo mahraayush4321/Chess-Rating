@@ -50,7 +50,7 @@ const initSocketHandlers = (io) => {
     // Handle find match requests
     socket.on('findMatch', async (data) => {
       try {
-        const { playerId,timeControl } = data;
+        const { playerId } = data;
         currentPlayerId = playerId;
         
         // Find player in database
@@ -72,7 +72,6 @@ const initSocketHandlers = (io) => {
           rating: player.rating,
           name: player.name || `${player.firstName} ${player.lastName}`,
           joinedAt: new Date(),
-          timeControl:timeControl
         });
         
         // Notify player they're in queue
@@ -394,7 +393,6 @@ async function findMatchForPlayer(socket, player) {
         result: 'ongoing',
         datePlayed: new Date(),
         matchType: 'ranked',
-        timeControl:matchmakingQueue.get(playerId).timeControl
       });
       await match.save();
       
@@ -424,7 +422,6 @@ async function findMatchForPlayer(socket, player) {
           rating: opponent.rating
         },
         color: player1Color,
-        timeControl:match.timeControl
       });
       
       opponentSocket.emit('matchFound', {
@@ -436,7 +433,6 @@ async function findMatchForPlayer(socket, player) {
           rating: playerDoc.rating
         },
         color: player2Color,
-        timeControl: match.timeControl  // Add this line
       });
       
       // Join rooms after emitting match details
@@ -454,9 +450,8 @@ async function findMatchForPlayer(socket, player) {
         rating: playerRating,
         name: player.name,
         joinedAt: new Date(),
-        timeControl:matchmakingQueue.get(playerId)?.timeControl
       });
-      matchmakingQueue.set(opponentId, {...opponentData,joinedAt:new Date()});
+      matchmakingQueue.set(opponentId, opponentData);
       socket.emit('matchError', { message: 'Failed to create match, retrying...' });
     }
   } else {
