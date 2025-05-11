@@ -220,27 +220,7 @@ const AddMatch = () => {
       setWaitingForOpponent(true);
     }
   };
-  // const ChessBoard = () => {
-  //   return (
-  //     <div className="aspect-square bg-gradient-to-r from-green-800 to-green-900 rounded-lg overflow-hidden shadow-xl">
-  //       <div className="grid grid-cols-8 grid-rows-8 w-full h-full">
-  //         {Array.from({ length: 64 }).map((_, index) => {
-  //           const row = Math.floor(index / 8);
-  //           const col = index % 8;
-  //           const isLight = (row + col) % 2 === 0;
-  //           return (
-  //             <div 
-  //               key={index} 
-  //               className={`${isLight ? "bg-green-200" : "bg-green-600"}`}
-  //             ></div>
-  //           );
-  //         })}
-  //       </div>
-  //     </div>
-  //   );
-  // };
-
-
+  
   return (
   <>
     <Header />

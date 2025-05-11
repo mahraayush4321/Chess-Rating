@@ -50,7 +50,7 @@ const initSocketHandlers = (io) => {
     // Handle find match requests
     socket.on('findMatch', async (data) => {
       try {
-        const { playerId } = data;
+        const { playerId,timeControl } = data;
         currentPlayerId = playerId;
         
         // Find player in database
@@ -71,7 +71,8 @@ const initSocketHandlers = (io) => {
           socketId: socket.id,
           rating: player.rating,
           name: player.name || `${player.firstName} ${player.lastName}`,
-          joinedAt: new Date()
+          joinedAt: new Date(),
+          timeControl:timeControl
         });
         
         // Notify player they're in queue
@@ -392,7 +393,8 @@ async function findMatchForPlayer(socket, player) {
         player2: opponentId,
         result: 'ongoing',
         datePlayed: new Date(),
-        matchType: 'ranked'
+        matchType: 'ranked',
+        timeControl:matchmakingQueue.get(playerId).timeControl
       });
       await match.save();
       
@@ -421,7 +423,8 @@ async function findMatchForPlayer(socket, player) {
           name: opponent.name || `${opponent.firstName} ${opponent.lastName}`,
           rating: opponent.rating
         },
-        color: player1Color
+        color: player1Color,
+        timeControl:match.timeControl
       });
       
       opponentSocket.emit('matchFound', {
