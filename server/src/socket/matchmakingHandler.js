@@ -48,84 +48,43 @@ const initSocketHandlers = (io) => {
     });
 
     // Handle find match requests
-    // Inside the findMatch event handler
     socket.on('findMatch', async (data) => {
       try {
-        const { playerId, timeControl } = data;
-        console.log(`Player ${playerId} looking for match with time control: ${timeControl}`);
+        const { playerId,timeControl } = data;
+        currentPlayerId = playerId;
         
+        // Find player in database
         const player = await Player.findById(playerId);
         if (!player) {
           return socket.emit('matchError', { message: 'Player not found' });
         }
-    
-        // Add player to matchmaking queue with timeControl
+        
+        console.log(`Player ${player.name} (${player.rating}) searching for match`);
+        
+        // Update player status in database
+        player.isSearchingMatch = true;
+        player.lastSearchStarted = new Date();
+        await player.save();
+        
+        // Add player to matchmaking queue with rating info
         matchmakingQueue.set(playerId, {
-          id: playerId,
-          rating: player.rating,
-          name: player.name,
           socketId: socket.id,
-          timeControl: timeControl // Make sure timeControl is stored here
+          rating: player.rating,
+          name: player.name || `${player.firstName} ${player.lastName}`,
+          joinedAt: new Date(),
+          timeControl:timeControl
         });
-    
-        // Find match for player
+        
+        // Notify player they're in queue
+        socket.emit('matchmaking', { status: 'searching' });
+        
+        // Try to find a match
         findMatchForPlayer(socket, player);
       } catch (error) {
-        console.error('Error finding match:', error);
+        console.error('Error in findMatch socket handler:', error);
         socket.emit('matchError', { message: error.message });
       }
     });
-
-    // Inside findMatchForPlayer function
-    async function findMatchForPlayer(socket, player) {
-      const playerId = player._id.toString();
-      const playerData = matchmakingQueue.get(playerId);
-      
-      if (!playerData) {
-        console.log('Player data not found in queue');
-        return socket.emit('matchError', { message: 'Player not found in queue' });
-      }
-
-      const potentialOpponents = [...matchmakingQueue.entries()]
-        .filter(([id, data]) => {
-          if (id === playerId) return false;
-          
-          // Check if timeControl matches
-          if (data.timeControl !== playerData.timeControl) {
-            console.log(`Time control mismatch: ${data.timeControl} vs ${playerData.timeControl}`);
-            return false;
-          }
-          
-          // Rest of your matching logic
-          const ratingDiff = Math.abs(data.rating - player.rating);
-          return ratingDiff <= 100;
-        });
-
-      // When creating the match
-      if (potentialOpponents.length > 0) {
-        const [opponentId, opponentData] = potentialOpponents[0];
-        
-        try {
-          // Store timeControl before removing players from queue
-          const matchTimeControl = playerData.timeControl;
-          
-          // Create new match with the stored timeControl
-          const match = new Match({
-            player1: playerId,
-            player2: opponentId,
-            result: 'ongoing',
-            datePlayed: new Date(),
-            matchType: 'ranked',
-            timeControl: matchTimeControl
-          });
-
-          // Rest of your match creation logic
-        } catch (error) {
-          console.error('Error creating match:', error);
-          socket.emit('matchError', { message: error.message });
-        }
-      }
-    }
 
     // Handle cancellation of matchmaking
     socket.on('cancelMatchmaking', async () => {
@@ -388,13 +347,6 @@ async function findMatchForPlayer(socket, player) {
         return false;
       }
       
-      // Check if timeControl matches
-      const playerData = matchmakingQueue.get(playerId);
-      if (data.timeControl !== playerData.timeControl) {
-        console.log(`Time control mismatch: ${data.timeControl} vs ${playerData.timeControl}`);
-        return false;
-      }
-      
       // Check rating range (within -50 to +100 of player's rating)
       const ratingDiff = Math.abs(data.rating - playerRating);
       console.log(`Potential opponent ${data.name} (${data.rating}), rating diff: ${ratingDiff}`);
@@ -420,9 +372,6 @@ async function findMatchForPlayer(socket, player) {
     try {
       console.log(`Attempting to create match between ${player.name} and ${opponentData.name}`);
       
-      // Store timeControl before removing players from queue
-      const matchTimeControl = opponentData.timeControl;
-      
       // Remove both players from queue FIRST to prevent double matching
       matchmakingQueue.delete(playerId);
       matchmakingQueue.delete(opponentId);
@@ -445,7 +394,7 @@ async function findMatchForPlayer(socket, player) {
         result: 'ongoing',
         datePlayed: new Date(),
         matchType: 'ranked',
-        timeControl: matchmakingQueue.get(playerId).timeControl // Make sure this is in seconds
+        timeControl:matchmakingQueue.get(playerId).timeControl
       });
       await match.save();
       
@@ -475,7 +424,7 @@ async function findMatchForPlayer(socket, player) {
           rating: opponent.rating
         },
         color: player1Color,
-        timeControl: match.timeControl 
+        timeControl:match.timeControl
       });
       
       opponentSocket.emit('matchFound', {
@@ -487,7 +436,7 @@ async function findMatchForPlayer(socket, player) {
           rating: playerDoc.rating
         },
         color: player2Color,
-        timeControl: match.timeControl
+        timeControl: match.timeControl  // Add this line
       });
       
       // Join rooms after emitting match details

@@ -103,7 +103,7 @@ const PlayPage = () => {
     const params = new URLSearchParams(location.search);
     const matchId = params.get('matchId');
     const roomId = params.get('roomId');
-    const timeControl = parseInt(params.get('timeControl'))
+    const timeControl = parseInt(params.get('timeControl')) || 300;
     const currentUser = JSON.parse(localStorage.getItem('user'));
   
     if (!matchId || !roomId || !currentUser) {

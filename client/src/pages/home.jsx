@@ -82,11 +82,6 @@ const AddMatch = () => {
         setMatchDetails(details);
         setMatchStatus('matched');
         setIsSearching(false);
-
-        const searchParams = new URLSearchParams();
-        searchParams.set('matchId', details.matchId);
-        searchParams.set('roomId', details.roomId);
-        searchParams.set('timeControl', selectedTime * 60)
         
         // Include timeControl in the URL
         navigate(`/play?matchId=${details.matchId}&roomId=${details.roomId}&timeControl=${selectedTime * 60}`);
