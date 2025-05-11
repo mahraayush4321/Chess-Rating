@@ -435,7 +435,8 @@ async function findMatchForPlayer(socket, player) {
           name: playerDoc.name || `${playerDoc.firstName} ${playerDoc.lastName}`,
           rating: playerDoc.rating
         },
-        color: player2Color
+        color: player2Color,
+        timeControl: match.timeControl
       });
       
       // Join rooms after emitting match details
@@ -452,9 +453,10 @@ async function findMatchForPlayer(socket, player) {
         socketId: socket.id,
         rating: playerRating,
         name: player.name,
-        joinedAt: new Date()
+        joinedAt: new Date(),
+        timeControl:matchmakingQueue.get(playerId)?.timeControl
       });
-      matchmakingQueue.set(opponentId, opponentData);
+      matchmakingQueue.set(opponentId, {...opponentData,joinedAt:new Date()});
       socket.emit('matchError', { message: 'Failed to create match, retrying...' });
     }
   } else {
