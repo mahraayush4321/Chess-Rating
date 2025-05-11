@@ -347,6 +347,13 @@ async function findMatchForPlayer(socket, player) {
         return false;
       }
       
+      // Check if timeControl matches
+      const playerData = matchmakingQueue.get(playerId);
+      if (data.timeControl !== playerData.timeControl) {
+        console.log(`Time control mismatch: ${data.timeControl} vs ${playerData.timeControl}`);
+        return false;
+      }
+      
       // Check rating range (within -50 to +100 of player's rating)
       const ratingDiff = Math.abs(data.rating - playerRating);
       console.log(`Potential opponent ${data.name} (${data.rating}), rating diff: ${ratingDiff}`);
@@ -372,6 +379,9 @@ async function findMatchForPlayer(socket, player) {
     try {
       console.log(`Attempting to create match between ${player.name} and ${opponentData.name}`);
       
+      // Store timeControl before removing players from queue
+      const matchTimeControl = opponentData.timeControl;
+      
       // Remove both players from queue FIRST to prevent double matching
       matchmakingQueue.delete(playerId);
       matchmakingQueue.delete(opponentId);
@@ -394,7 +404,7 @@ async function findMatchForPlayer(socket, player) {
         result: 'ongoing',
         datePlayed: new Date(),
         matchType: 'ranked',
-        timeControl:matchmakingQueue.get(playerId).timeControl
+        timeControl: matchTimeControl  // Use stored timeControl
       });
       await match.save();
       
