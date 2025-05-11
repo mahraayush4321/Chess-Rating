@@ -404,7 +404,7 @@ async function findMatchForPlayer(socket, player) {
         result: 'ongoing',
         datePlayed: new Date(),
         matchType: 'ranked',
-        timeControl: matchTimeControl  // Use stored timeControl
+        timeControl: matchmakingQueue.get(playerId).timeControl // Make sure this is in seconds
       });
       await match.save();
       
@@ -434,7 +434,7 @@ async function findMatchForPlayer(socket, player) {
           rating: opponent.rating
         },
         color: player1Color,
-        timeControl:match.timeControl
+        timeControl: match.timeControl 
       });
       
       opponentSocket.emit('matchFound', {
