@@ -6,6 +6,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogFooter, 
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { pieces, initialBoard, getPieceSymbol, getPieceColor, isValidMove } from '../utils/chess';
 import io from 'socket.io-client';
+import { ML_API } from '../config/api';
 
 const PlayPage = () => {
   const location = useLocation();
@@ -29,6 +30,126 @@ const PlayPage = () => {
   const [timerInterval, setTimerInterval] = useState(null);
   const [lastMove, setLastMove] = useState(null);
   const [showTurnAlert, setShowTurnAlert] = useState(false);
+  const [moveHistory, setMoveHistory] = useState([]);
+
+  useEffect(() => {
+    (async() => {
+      if (gameOver && moveHistory.length > 0) {
+        const payload = { 
+          moves: moveHistory,
+          playerColor,
+          winner,
+          timeControl: matchDetails?.timeControl
+        };
+        
+        console.log('Sending game data to API:', payload);
+        try {
+          const response = await fetch(`${ML_API.BASE_URL}${ML_API.ENDPOINTS.ANALYZE}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            mode: 'cors',
+            credentials: 'omit', 
+            body: JSON.stringify(payload),
+            body: JSON.stringify({ 
+              moves: moveHistory,
+              playerColor,
+              winner,
+              timeControl: matchDetails?.timeControl
+            }),
+          });
+          
+          console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+          
+          const data = await response.json();
+          console.log('Analysis response:', data);
+          if (!response.ok) {
+            console.error('API Error:', response.status, data);
+          }
+          
+        } catch (error) {
+          console.error('Error sending game data:', error);
+        }
+      }else{
+        console.log('Not sending data:', { gameOver, moveHistoryLength: moveHistory.length });
+      }
+    })();
+  }, [gameOver, moveHistory, playerColor, winner, matchDetails]);
+
+  // Add these functions to your existing code
+const convertToAlgebraicNotation = (from, to, piece, board, capturedPiece = '') => {
+  // Chess files (columns) are labeled a-h from left to right
+  const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+  // Ranks (rows) are labeled 1-8 from bottom to top
+  
+  // Convert coordinates to algebraic notation
+  const fromFile = files[from.col];
+  const fromRank = 8 - from.row;
+  const toFile = files[to.col];
+  const toRank = 8 - to.row;
+  
+  // Get piece type
+  const pieceType = piece[1];
+  let notation = '';
+  
+  switch(pieceType) {
+    case 'p':
+      // Pawn captures are noted with file
+      if (capturedPiece) {
+        notation = `${fromFile}x${toFile}${toRank}`;
+      } else {
+        notation = `${toFile}${toRank}`;
+      }
+      break;
+    case 'n':
+      notation = `N${capturedPiece ? 'x' : ''}${toFile}${toRank}`;
+      break;
+    case 'b':
+      notation = `B${capturedPiece ? 'x' : ''}${toFile}${toRank}`;
+      break;
+    case 'r':
+      notation = `R${capturedPiece ? 'x' : ''}${toFile}${toRank}`;
+      break;
+    case 'q':
+      notation = `Q${capturedPiece ? 'x' : ''}${toFile}${toRank}`;
+      break;
+    case 'k':
+      // Handle castling
+      if (fromFile === 'e' && toFile === 'g') {
+        notation = 'O-O'; // Kingside castling
+      } else if (fromFile === 'e' && toFile === 'c') {
+        notation = 'O-O-O'; // Queenside castling
+      } else {
+        notation = `K${capturedPiece ? 'x' : ''}${toFile}${toRank}`;
+      }
+      break;
+  }
+  
+  return notation;
+};
+
+// Function to send moves data to your API
+const sendMovesToAPI = async (moves) => {
+  try {
+    const response = await fetch('https://chess-analyzer-api-production.up.railway.app/api/analyze', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ moves }),
+    });
+    
+    const data = await response.json();
+    console.log('ML analysis response:', data);
+    return data;
+  } catch (error) {
+    console.error('Error sending moves to API:', error);
+    return null;
+  }
+};
   
   useEffect(() => {
     if (matchDetails?.timeControl) {
@@ -319,24 +440,29 @@ const PlayPage = () => {
     });
 };
   
-  const handleOpponentMove = (from, to) => {
-    setBoard(prevBoard => {
-      const newBoard = prevBoard.map(row => [...row]);
-      const piece = newBoard[from.row][from.col];
-      newBoard[to.row][to.col] = piece;
-      newBoard[from.row][from.col] = '';
-      
-      const capturedPiece = prevBoard[to.row][to.col];
-      if (capturedPiece === 'wk' || capturedPiece === 'bk') {
-        setGameOver(true);
-        setWinner(currentPlayer === 'white' ? 'black' : 'white');
-      }
-      return newBoard;
-    });
+const handleOpponentMove = (from, to) => {
+  setBoard(prevBoard => {
+    const newBoard = prevBoard.map(row => [...row]);
+    const piece = newBoard[from.row][from.col];
+    const capturedPiece = newBoard[to.row][to.col];
     
-    setLastMove({ from, to });
-    setCurrentPlayer(prev => prev === 'white' ? 'black' : 'white');
-  };
+    // Record the move in algebraic notation
+    const moveNotation = convertToAlgebraicNotation(from, to, piece, prevBoard, capturedPiece);
+    setMoveHistory(prev => [...prev, moveNotation]);
+    
+    newBoard[to.row][to.col] = piece;
+    newBoard[from.row][from.col] = '';
+    
+    if (capturedPiece === 'wk' || capturedPiece === 'bk') {
+      setGameOver(true);
+      setWinner(currentPlayer === 'white' ? 'black' : 'white');
+    }
+    return newBoard;
+  });
+  
+  setLastMove({ from, to });
+  setCurrentPlayer(prev => prev === 'white' ? 'black' : 'white');
+};
   
   const isKingUnderAttack = (boardState, kingColor) => {
     let kingRow, kingCol;
@@ -400,6 +526,20 @@ const PlayPage = () => {
       if (isValidMove(board, selectedPiece.row, selectedPiece.col, row, col, currentPlayer)) {
         const newBoard = [...board.map(row => [...row])];
         const capturedPiece = newBoard[row][col];
+
+        const moveNotation = convertToAlgebraicNotation(
+          { row: selectedPiece.row, col: selectedPiece.col },
+          { row, col },
+          selectedPiece.piece,
+          board,
+          capturedPiece
+        );
+        console.log('Move recorded:', moveNotation);
+        setMoveHistory(prev => {
+          const newHistory = [...prev, moveNotation];
+          console.log('Current move history:', newHistory);
+          return newHistory;
+        });
         
         newBoard[row][col] = selectedPiece.piece;
         newBoard[selectedPiece.row][selectedPiece.col] = '';

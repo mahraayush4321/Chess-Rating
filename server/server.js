@@ -14,15 +14,16 @@ const io = new Server(httpServer, {
             'http://localhost:5173',
             'https://chess-rating.onrender.com',
             'https://chess-rating.vercel.app',
-            'https://chess-sh.netlify.app'
+            'https://chess-sh.netlify.app',
+            'https://chess-analyzer-api-production.up.railway.app/api/analyze'
         ],
         credentials: true,
-        methods: ["GET", "POST", "OPTIONS"]
+        methods: ["GET", "POST", "OPTIONS","PUT","DELETE"]
     },
-    pingTimeout: 60000, // Increase ping timeout
-    pingInterval: 25000, // Increase ping interval
-    transports: ['websocket', 'polling'], // Enable both WebSocket and polling
-    allowEIO3: true // Enable Engine.IO v3 transport
+    pingTimeout: 60000, 
+    pingInterval: 25000,
+    transports: ['websocket', 'polling'],
+    allowEIO3: true
 });
 
 

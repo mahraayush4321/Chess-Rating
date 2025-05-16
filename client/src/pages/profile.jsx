@@ -43,7 +43,7 @@ const Profile = () => {
       if (isWin === isFirstMatchWin) {
         currentStreak += isFirstMatchWin ? 1 : -1;
       } else {
-        break; // Streak ends when we find a different result
+        break;
       }
     }
     

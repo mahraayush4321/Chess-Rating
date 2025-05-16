@@ -2,7 +2,7 @@ const express = require('express')
 const HTTP_STATUS = require('../helpers/http-status');
 const Response = require('../helpers/response');
 const Model = require('../models/users');
-const Player = require('../models/players'); // Add this line
+const Player = require('../models/players');
 const bcrypt = require('bcrypt');
 
 class User {

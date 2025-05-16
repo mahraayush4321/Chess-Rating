@@ -5,7 +5,7 @@ const cron = require('../../helpers/cronJob')
 
 router.post('/addMatch', match.saveMatch);
 router.post('/save-game-history', match.saveGameHistory);
-router.post('/update-ratings', cron.scheduleRatingUpdate);
+// router.post('/update-ratings', cron.scheduleRatingUpdate);
 router.get('/:id/stats', match.getPlayerStats);
 router.get('/leaderboard', match.getLeaderBoard);
 router.get('/getTopWinning', match.getTopWinningPlayers); 

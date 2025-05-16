@@ -1,8 +1,6 @@
 export const ML_API = {
-    BASE_URL: 'https://your-ml-model-domain.com/api',
+    BASE_URL: 'https://chess-analyzer-api-production.up.railway.app/api',
     ENDPOINTS: {
-        MOVE_ANALYSIS: '/analyze-moves',
-        GAME_PREDICTION: '/predict-outcome'
-    },
-    // API_KEY: 'your-api-key' // Store this securely, preferably in environment variables
+        ANALYZE: '/analyze'
+    }
 };
