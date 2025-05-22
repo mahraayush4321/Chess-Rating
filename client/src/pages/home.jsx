@@ -83,8 +83,12 @@ const AddMatch = () => {
         setMatchStatus('matched');
         setIsSearching(false);
         
+        // Use the timeControl from the server response instead of the local state
+        const timeControlFromServer = details.timeControl || selectedTime * 60;
+        console.log('Using time control from server:', timeControlFromServer);
+        
         // Include timeControl in the URL
-        navigate(`/play?matchId=${details.matchId}&roomId=${details.roomId}&timeControl=${selectedTime * 60}`);
+        navigate(`/play?matchId=${details.matchId}&roomId=${details.roomId}&timeControl=${timeControlFromServer}`);
       });
 
       socketRef.current.on("matchmaking", (data) => {
@@ -98,15 +102,16 @@ const AddMatch = () => {
         }
       });
 
-      ('matchEnded', (data) => {
-        console.log('Match ended with data:', data);
-        
-        // If we want to update the UI with the match result
-        if (currentUser) {
-          // Refresh player data to get updated matches
-          fetchPlayerData(currentUser._id);
-        }
-      });
+      // Fix the syntax error in the matchEnded event listener
+            socketRef.current.on('matchEnded', (data) => {
+              console.log('Match ended with data:', data);
+              
+              // If we want to update the UI with the match result
+              if (currentUser) {
+                // Refresh player data to get updated matches
+                fetchPlayerData(currentUser._id);
+              }
+            });
   
       socketRef.current.on('matchmaking', (data) => {
         console.log('Matchmaking status:', data);
@@ -179,10 +184,13 @@ const AddMatch = () => {
     
     setError(null); // Clear any previous errors
     
+    const timeControlInSeconds = selectedTime * 60;
+    console.log(`Finding match with time control: ${timeControlInSeconds} seconds (${selectedTime} minutes)`);
+    
     // Emit findMatch event to server
     socketRef.current.emit('findMatch', { 
       playerId: currentUser._id,
-      timeControl: selectedTime * 60
+      timeControl: timeControlInSeconds
     });
     
     setIsSearching(true);
@@ -196,17 +204,6 @@ const AddMatch = () => {
     setIsSearching(false);
   };
   
-  const startMatch = (opponent) => {
-    setSelectedOpponent(opponent);
-  };
-  
-  const confirmMatch = () => {
-    // For direct challenges - not used in auto-matchmaking flow
-    // You would implement this for the "Challenge" button functionality
-    setSelectedOpponent(null);
-  };
-
-  // Handle the Start Game button click
   const handleStartGame = () => {
     if (matchDetails && socketRef.current && currentUser) {
       socketRef.current.emit('playerReady', {

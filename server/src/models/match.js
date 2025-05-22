@@ -31,9 +31,9 @@ const matchSchema = new mongoose.Schema({
         default: 'pending'
     },
     timeControl: {
-        type: Number,  
+        type: Number,
         required: true,
-        default: 300  
+        default: 300
     },
     duration: {
         type: Number,  
