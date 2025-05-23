@@ -5,7 +5,7 @@ import io from 'socket.io-client';
 import { ML_API } from '../../config/api';
 
 // Utility functions
-const convertToAlgebraicNotation = (from, to, piece, board, capturedPiece = '') => {
+export const convertToAlgebraicNotation = (from, to, piece, board, capturedPiece = '') => {
   // Chess files (columns) are labeled a-h from left to right
   const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
   // Ranks (rows) are labeled 1-8 from bottom to top
