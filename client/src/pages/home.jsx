@@ -182,15 +182,10 @@ const AddMatch = () => {
   const findMatch = () => {
     if (!currentUser || !socketRef.current) return;
     
-    setError(null); // Clear any previous errors
-    
-    const timeControlInSeconds = selectedTime * 60;
-    console.log(`Finding match with time control: ${timeControlInSeconds} seconds (${selectedTime} minutes)`);
-    
-    // Emit findMatch event to server
+    setError(null);
     socketRef.current.emit('findMatch', { 
       playerId: currentUser._id,
-      timeControl: timeControlInSeconds
+      timeControl: selectedTime * 60
     });
     
     setIsSearching(true);

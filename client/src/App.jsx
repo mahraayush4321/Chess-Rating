@@ -9,6 +9,7 @@ import Profile from "./pages/profile";
 import Leaderboard from "./pages/leaderboard";
 import { ProtectedRoute, PublicRoute } from "./components/ProtectedRoute";
 import { useAuth } from "./context/AuthContext";
+import PlayAI from './pages/PlayAI';
 
 function App() {
   const { user } = useAuth();
@@ -68,6 +69,12 @@ function App() {
             <Leaderboard />
           </ProtectedRoute>
         }
+      />
+      <Route path="/play-ai" element={
+        <ProtectedRoute>
+          <PlayAI />
+        </ProtectedRoute>
+        } 
       />
     </Routes>
   );

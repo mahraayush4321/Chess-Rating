@@ -4,6 +4,13 @@ import { Link } from 'react-router-dom';
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const navigationItems = [
+    { name: 'Home', path: '/home' },
+    { name: 'Play with AI', path: '/play-ai' },
+    { name: 'Leaderboard', path: '/leaderboard' },
+    { name: 'Profile', path: '/profile' }
+  ];
+
   return (
     <header className="bg-zinc-900/95 backdrop-blur-sm shadow-lg w-full fixed top-0 left-0 right-0 z-50 border-b border-zinc-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -33,11 +40,7 @@ const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-1">
-            {[
-              { name: 'Home', path: '/home' },
-              { name: 'Leaderboard', path: '/leaderboard' },
-              { name: 'Profile', path: '/profile' }
-            ].map((item) => (
+            {navigationItems.map((item) => (
               <Link
                 key={item.name}
                 to={item.path}
@@ -80,11 +83,7 @@ const Header = () => {
       {/* Mobile menu */}
       <div className={`md:hidden ${mobileMenuOpen ? 'block' : 'hidden'}`}>
         <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-zinc-900/95 border-t border-zinc-800">
-          {[
-            { name: 'Home', path: '/home' },
-            { name: 'Leaderboard', path: '/leaderboard' },
-            { name: 'Profile', path: '/profile' }
-          ].map((item) => (
+          {navigationItems.map((item) => (
             <Link
               key={item.name}
               to={item.path}
