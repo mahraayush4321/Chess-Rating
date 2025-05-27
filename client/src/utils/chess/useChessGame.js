@@ -188,20 +188,19 @@ export const useChessGame = () => {
     const params = new URLSearchParams(location.search);
     const matchId = params.get('matchId');
     const roomId = params.get('roomId');
-    const timeControl = parseInt(params.get('timeControl'))
+    const timeControl = parseInt(params.get('timeControl')) || 300;
     const currentUser = JSON.parse(localStorage.getItem('user'));
   
-    if (!matchId || !roomId || !currentUser) {
+    if (!matchId || !roomId || !currentUser || !timeControl) {
       console.error('Missing required parameters or user data');
       navigate('/');
       return;
     }
 
     console.log('Setting up game with time control:', timeControl, 'seconds');
-    if (timeControl) {
-      setWhiteTime(timeControl);
-      setBlackTime(timeControl);
-    }
+
+    setWhiteTime(timeControl);
+    setBlackTime(timeControl);
   
     const newSocket = io('https://chess-rating.onrender.com', {
       transports: ['websocket', 'polling'],
@@ -289,7 +288,6 @@ export const useChessGame = () => {
       const searchParams = new URLSearchParams();
       searchParams.set('matchId', details.matchId);
       searchParams.set('roomId', details.roomId);
-      searchParams.set('timeControl', details.timeControl);
       navigate(`${location.pathname}?${searchParams.toString()}`, { replace: true });
       
       setMatchDetails(details);
@@ -385,8 +383,8 @@ export const useChessGame = () => {
       setErrorMessage("You need to be logged in to find a match");
       return;
     }
-    const timeControl = matchDetails?.timeControl || selectedTime * 60;
-    socket.emit('findMatch', { playerId: currentUser._id,timeControl:timeControl });
+    
+    socket.emit('findMatch', { playerId: currentUser._id });
     setIsSearching(true);
   };
   
