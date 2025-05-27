@@ -4,25 +4,19 @@ import { initialBoard, getPieceSymbol, getPieceColor, isValidMove } from '../che
 import io from 'socket.io-client';
 import { ML_API } from '../../config/api';
 
-// Utility functions
 export const convertToAlgebraicNotation = (from, to, piece, board, capturedPiece = '') => {
-  // Chess files (columns) are labeled a-h from left to right
   const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-  // Ranks (rows) are labeled 1-8 from bottom to top
   
-  // Convert coordinates to algebraic notation
   const fromFile = files[from.col];
   const fromRank = 8 - from.row;
   const toFile = files[to.col];
   const toRank = 8 - to.row;
   
-  // Get piece type
   const pieceType = piece[1];
   let notation = '';
   
   switch(pieceType) {
     case 'p':
-      // Pawn captures are noted with file
       if (capturedPiece) {
         notation = `${fromFile}x${toFile}${toRank}`;
       } else {
@@ -42,11 +36,10 @@ export const convertToAlgebraicNotation = (from, to, piece, board, capturedPiece
       notation = `Q${capturedPiece ? 'x' : ''}${toFile}${toRank}`;
       break;
     case 'k':
-      // Handle castling
       if (fromFile === 'e' && toFile === 'g') {
-        notation = 'O-O'; // Kingside castling
+        notation = 'O-O';
       } else if (fromFile === 'e' && toFile === 'c') {
-        notation = 'O-O-O'; // Queenside castling
+        notation = 'O-O-O';
       } else {
         notation = `K${capturedPiece ? 'x' : ''}${toFile}${toRank}`;
       }
@@ -62,7 +55,6 @@ const formatTime = (seconds) => {
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 };
 
-// Main chess game hook
 export const useChessGame = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -90,7 +82,6 @@ export const useChessGame = () => {
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Handle game analysis after game over
   useEffect(() => {
     (async() => {
       if (gameOver && moveHistory.length > 0) {
@@ -118,13 +109,10 @@ export const useChessGame = () => {
             body: JSON.stringify(payload),
           });
           
-          console.log('Response status:', response.status);
-          console.log('Response headers:', Object.fromEntries(response.headers.entries()));
           
           const data = await response.json();
           console.log('Analysis response:', data);
           if (response.ok && data.result_url) {
-            // Poll the result URL every 2 seconds until data is available
             const pollInterval = setInterval(async () => {
               try {
                 const analysisResponse = await fetch(data.result_url);
@@ -140,7 +128,6 @@ export const useChessGame = () => {
               }
             }, 2000);
   
-            // Clear interval after 30 seconds to prevent infinite polling
             setTimeout(() => clearInterval(pollInterval), 30000);
           }
           
@@ -153,7 +140,6 @@ export const useChessGame = () => {
     })();
   }, [gameOver, moveHistory, playerColor, winner, matchDetails, opponentInfo]);
 
-  // Setup time controls for match
   useEffect(() => {
     if (matchDetails?.timeControl) {
       setWhiteTime(matchDetails.timeControl);
@@ -161,7 +147,6 @@ export const useChessGame = () => {
     }
   }, [matchDetails]);
 
-  // Timer effect
   useEffect(() => {
     if (bothPlayersReady && !gameOver) {
       const interval = setInterval(() => {
@@ -191,7 +176,6 @@ export const useChessGame = () => {
     }
   }, [currentPlayer, bothPlayersReady, gameOver]);
 
-  // Cleanup timer on unmount
   useEffect(() => {
     return () => {
       if (timerInterval) {
@@ -200,12 +184,11 @@ export const useChessGame = () => {
     };
   }, [timerInterval]);
 
-  // Initialize socket connection and setup game
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const matchId = params.get('matchId');
     const roomId = params.get('roomId');
-    const timeControl = parseInt(params.get('timeControl')) || 300;
+    const timeControl = parseInt(params.get('timeControl'))
     const currentUser = JSON.parse(localStorage.getItem('user'));
   
     if (!matchId || !roomId || !currentUser) {
@@ -214,8 +197,11 @@ export const useChessGame = () => {
       return;
     }
 
-    setWhiteTime(timeControl);
-    setBlackTime(timeControl);
+    console.log('Setting up game with time control:', timeControl, 'seconds');
+    if (timeControl) {
+      setWhiteTime(timeControl);
+      setBlackTime(timeControl);
+    }
   
     const newSocket = io('https://chess-rating.onrender.com', {
       transports: ['websocket', 'polling'],
@@ -303,6 +289,7 @@ export const useChessGame = () => {
       const searchParams = new URLSearchParams();
       searchParams.set('matchId', details.matchId);
       searchParams.set('roomId', details.roomId);
+      searchParams.set('timeControl', details.timeControl);
       navigate(`${location.pathname}?${searchParams.toString()}`, { replace: true });
       
       setMatchDetails(details);
@@ -398,8 +385,8 @@ export const useChessGame = () => {
       setErrorMessage("You need to be logged in to find a match");
       return;
     }
-    
-    socket.emit('findMatch', { playerId: currentUser._id });
+    const timeControl = matchDetails?.timeControl || selectedTime * 60;
+    socket.emit('findMatch', { playerId: currentUser._id,timeControl:timeControl });
     setIsSearching(true);
   };
   
