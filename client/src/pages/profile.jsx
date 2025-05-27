@@ -6,6 +6,14 @@ import { Pie, Line } from 'react-chartjs-2';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement);
 
+const predefinedAvatars = [
+  '/avatar1.jpg',
+  '/avatar2.jpg',
+  '/avatar3.jpg',
+  '/avatar4.jpg',
+  '/avatar5.jpg'
+];
+
 const Profile = () => {
   const [user, setUser] = useState(null);
   const [gameHistory, setGameHistory] = useState([]);
@@ -19,63 +27,22 @@ const Profile = () => {
     bio: ''
   });
   const navigate = useNavigate();
-  // const [gameAnalytics, setGameAnalytics] = useState(null);
-
-  // useEffect(() => {
-  //   const fetchAnalytics = async () => {
-  //     try {
-  //       const userData = JSON.parse(localStorage.getItem('user'));
-  //       if (!userData?._id) return;
-  
-  //       const response = await fetch(`https://chess-analyzer-api-production.up.railway.app/api/result/${userData._id}`);
-  //       const data = await response.json(); 
-  //       setGameAnalytics(data);
-  //     } catch (err) {
-  //       console.error("Failed to fetch analytics:", err);
-  //     }
-  //   };
-  
-  //   fetchAnalytics();
-  // }, []);
-
-  // const pieChartData = {
-  //   labels: ['Blunders', 'Mistakes', 'Inaccuracies'],
-  //   datasets: [{
-  //     data: [gameAnalytics?.blunders || 0, gameAnalytics?.mistakes || 0, gameAnalytics?.inaccuracies || 0],
-  //     backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
-  //     borderColor: ['#7f1d1d', '#854d0e', '#1e3a8a'],
-  //     borderWidth: 1,
-  //   }],
-  // };
-
-  // const moveQualityData = {
-  //   labels: gameAnalytics?.full_moves.map(move => move['Move Number']) || [],
-  //   datasets: [{
-  //     label: 'CP Loss',
-  //     data: gameAnalytics?.full_moves.map(move => Math.abs(move['CP Loss'])) || [],
-  //     borderColor: '#f59e0b',
-  //     tension: 0.1,
-  //     fill: false,
-  //   }],
-  // };
+ 
 
   const calculateStreak = (matches, userId) => {
     if (!matches || matches.length === 0) return 0;
     let currentStreak = 0;
     
-    // Sort matches by date in descending order (most recent first)
     const sortedMatches = [...matches].sort((a, b) => 
       new Date(b.datePlayed) - new Date(a.datePlayed)
     );
     
-    // Get the first completed match result
     const firstMatch = sortedMatches.find(match => match.status === 'completed');
     if (!firstMatch) return 0;
     
     const isFirstMatchWin = (firstMatch.player1._id === userId && firstMatch.result === 'win') || 
                            (firstMatch.player2._id === userId && firstMatch.result === 'loss');
     
-    // Count consecutive matches with the same result
     for (const match of sortedMatches) {
       if (match.status !== 'completed') continue;
       
@@ -100,7 +67,12 @@ const Profile = () => {
 
         const response = await fetch(`https://chess-rating.onrender.com/api/v1/${userData._id}`);
         const data = await response.json();
-        
+        const savedAvatar = localStorage.getItem('userAvatar');
+        if (savedAvatar) {
+          setPreviewUrl(savedAvatar);
+        } else if (data.profilePicture) {
+          setPreviewUrl(data.profilePicture);
+        }
         setUser(data);
         setEditForm({
           name: data.name || '',
@@ -583,73 +555,6 @@ const Profile = () => {
               </button>
             </div>
 
-            {/* {gameAnalytics && (
-              <div className="bg-black rounded-xl p-6 mb-8 shadow-xl border border-gray-700 backdrop-blur-sm bg-opacity-80">
-                <h2 className="text-xl md:text-2xl font-bold text-white mb-6">
-                  Game Analytics
-                </h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="bg-gray-800/50 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">
-                      Move Quality Distribution
-                    </h3>
-                    <div className="w-full h-64">
-                      <Pie
-                        data={pieChartData}
-                        options={{ maintainAspectRatio: false }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-800/50 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">
-                      CP Loss Over Time
-                    </h3>
-                    <div className="w-full h-64">
-                      <Line
-                        data={moveQualityData}
-                        options={{
-                          maintainAspectRatio: false,
-                          scales: {
-                            y: {
-                              beginAtZero: true,
-                              grid: {
-                                color: "#374151",
-                              },
-                              ticks: {
-                                color: "#9CA3AF",
-                              },
-                            },
-                            x: {
-                              grid: {
-                                color: "#374151",
-                              },
-                              ticks: {
-                                color: "#9CA3AF",
-                              },
-                            },
-                          },
-                        }}
-                      />
-                    </div>
-                  </div>
-
-            
-                  <div className="md:col-span-2 bg-gray-800/50 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">
-                      Improvement Suggestions
-                    </h3>
-                    <ul className="list-disc list-inside space-y-2 text-gray-300">
-                      {gameAnalytics.suggestions.map((suggestion, index) => (
-                        <li key={index}>{suggestion}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            )} */}
-
             <div className="space-y-6">
               <div>
                 <div className="flex justify-between items-center mb-2">
@@ -747,13 +652,12 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* Profile Picture Upload Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
           <div className="bg-black rounded-xl p-6 w-full max-w-md border border-gray-700 shadow-2xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold text-white">
-                Update Profile Picture
+                Choose Profile Picture
               </h3>
               <button
                 onClick={() => setShowUploadModal(false)}
@@ -776,68 +680,32 @@ const Profile = () => {
               </button>
             </div>
 
-            <div className="mb-6">
-              <div className="w-32 h-32 mx-auto rounded-full overflow-hidden border-2 border-dashed border-gray-600 flex items-center justify-center">
-                {previewUrl ? (
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              {predefinedAvatars.map((avatar, index) => (
+                <button
+                  key={index}
+                  onClick={() => {
+                    setPreviewUrl(avatar);
+                    localStorage.setItem("userAvatar", avatar);
+                    setShowUploadModal(false);
+                    setUser((prev) => ({
+                      ...prev,
+                      profilePicture: avatar,
+                    }));
+                  }}
+                  className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                    previewUrl === avatar
+                      ? "border-amber-500 scale-105"
+                      : "border-gray-600 hover:border-amber-500/50"
+                  }`}
+                >
                   <img
-                    src={previewUrl}
-                    alt="Preview"
+                    src={avatar}
+                    alt={`Avatar ${index + 1}`}
                     className="w-full h-full object-cover"
                   />
-                ) : (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-12 w-12 text-gray-500"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                )}
-              </div>
-            </div>
-
-            <label className="block mb-4">
-              <span className="sr-only">Choose profile photo</span>
-              <input
-                type="file"
-                onChange={handleFileChange}
-                className="block w-full text-sm text-gray-400
-                  file:mr-4 file:py-2 file:px-4
-                  file:rounded-md file:border-0
-                  file:text-sm file:font-semibold
-                  file:bg-amber-600 file:text-white
-                  hover:file:bg-amber-700
-                  cursor-pointer
-                "
-                accept="image/*"
-              />
-            </label>
-
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowUploadModal(false)}
-                className="px-4 py-2 rounded-lg text-gray-300 hover:text-white transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleUpload}
-                disabled={!selectedFile}
-                className={`px-4 py-2 rounded-lg text-white font-medium transition-colors ${
-                  selectedFile
-                    ? "bg-amber-600 hover:bg-amber-700"
-                    : "bg-gray-600 cursor-not-allowed"
-                }`}
-              >
-                Upload
-              </button>
+                </button>
+              ))}
             </div>
           </div>
         </div>

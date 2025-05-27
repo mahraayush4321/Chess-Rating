@@ -23,6 +23,9 @@ const AddMatch = () => {
   
   // Socket reference to prevent recreating on every render
   const socketRef = useRef(null);
+  const handleTimeSelection = (minutes) => {
+    setSelectedTime(minutes);
+  };
 
   const setupSocket = () => {
     if (socketRef.current && !socketRef.current.connected) {
@@ -83,12 +86,12 @@ const AddMatch = () => {
         setMatchStatus('matched');
         setIsSearching(false);
         
-        // Use the timeControl from the server response instead of the local state
-        const timeControlFromServer = details.timeControl || selectedTime * 60;
-        console.log('Using time control from server:', timeControlFromServer);
+        // Convert selected time to seconds and ensure it's used
+        const timeControlInSeconds = selectedTime * 60;
+        console.log('Using time control:', timeControlInSeconds, 'seconds');
         
-        // Include timeControl in the URL
-        navigate(`/play?matchId=${details.matchId}&roomId=${details.roomId}&timeControl=${timeControlFromServer}`);
+        // Navigate with the correct time control
+        navigate(`/play?matchId=${details.matchId}&roomId=${details.roomId}&timeControl=${timeControlInSeconds}`);
       });
 
       socketRef.current.on("matchmaking", (data) => {
@@ -183,9 +186,12 @@ const AddMatch = () => {
     if (!currentUser || !socketRef.current) return;
     
     setError(null);
+    const timeControlInSeconds = selectedTime * 60;
+    
+    console.log('Finding match with time control:', timeControlInSeconds, 'seconds');
     socketRef.current.emit('findMatch', { 
       playerId: currentUser._id,
-      timeControl: selectedTime * 60
+      timeControl: timeControlInSeconds
     });
     
     setIsSearching(true);
@@ -201,10 +207,12 @@ const AddMatch = () => {
   
   const handleStartGame = () => {
     if (matchDetails && socketRef.current && currentUser) {
+      const timeControlInSeconds = selectedTime * 60;
       socketRef.current.emit('playerReady', {
         matchId: matchDetails.matchId,
         roomId: matchDetails.roomId,
-        playerId: currentUser._id
+        playerId: currentUser._id,
+        timeControl: timeControlInSeconds // Add time control to playerReady event
       });
       
       // Update UI to show waiting for opponent
