@@ -231,14 +231,14 @@ const PlayPage = () => {
             </div>
             <h1 className="text-base sm:text-xl font-bold">ChessMaster</h1>
           </div>
-          <Button
+          {/* <Button
             onClick={() => navigate("/home")}
             variant="outline"
             size="sm"
             className="border-red-500 text-red-500 hover:bg-red-50 text-xs sm:text-sm"
           >
             Exit Game
-          </Button>
+          </Button> */}
         </div>
       </header>
 
