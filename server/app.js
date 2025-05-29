@@ -10,15 +10,11 @@ const cors = require('cors');
 const corsOpt = {
     origin: ['http://localhost:5173', 'https://chess-rating.onrender.com', 'https://chess-rating.vercel.app','https://chess-sh.netlify.app','https://chess-analyzer-api-production.up.railway.app/api/analyze'],
     credentials: true,
-    methods: ["GET", "POST", "OPTIONS"],
+    methods: ["GET", "POST", "OPTIONS", "PATCH"],
 };
 
 app.use(cors(corsOpt));
-
-// app.use(cors({
-//     origin: ['http://localhost:5173','https://chess-rating.onrender.com', 'https://chess-rating.vercel.app/'], 
-//     credentials: true
-// }));
+app.options('*', cors(corsOpt));
 
 require('dotenv').config();
 app.use(express.json());
@@ -33,7 +29,6 @@ dbHelper.createConnection().then(()=>{
 
 app.use(CONST.API_PREFIX, loadRoutes);
 
-// Add health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'healthy' });
 });
