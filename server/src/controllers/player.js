@@ -66,7 +66,7 @@ class Player {
     updatePlayer = async(req,res)  => {
         try {
            const {id} = req.params;
-           const allowedFields = ['age', 'bio', 'country'];
+           const allowedFields = ['name','age', 'bio', 'country'];
            const updates = Object.keys(req.body).filter(key => allowedFields.includes(key)).reduce((obj,key)=>{
             obj[key] = req.body[key]
             return obj;

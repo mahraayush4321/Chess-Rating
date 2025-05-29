@@ -133,28 +133,6 @@ const Profile = () => {
     }
   };
 
-  const handleUpload = async () => {
-    if (!selectedFile) return;
-    
-    try {
-      const formData = new FormData();
-      formData.append('profilePicture', selectedFile);
-      
-      const response = await fetch(`https://chess-rating.onrender.com/api/v1/upload-profile/${user._id}`, {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (response.ok) {
-        const updatedUser = await response.json();
-        setUser(updatedUser);
-        setShowUploadModal(false);
-      }
-    } catch (err) {
-      console.error("Failed to upload profile picture:", err);
-    }
-  };
-
   const handleEditChange = (e) => {
     const { name, value } = e.target;
     setEditForm(prev => ({
@@ -165,8 +143,8 @@ const Profile = () => {
 
   const handleEditSubmit = async () => {
     try {
-      const response = await fetch(`https://chess-rating.onrender.com/api/v1/${user._id}`, {
-        method: 'PUT',
+      const response = await fetch(`https://chess-rating.onrender.com/api/v1/updatePlayer/${user._id}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -174,12 +152,13 @@ const Profile = () => {
       });
       
       if (response.ok) {
-        const updatedUser = await response.json();
-        setUser(updatedUser);
+        const data = await response.json();
+        setUser(data.player);
         setShowEditModal(false);
       }
     } catch (err) {
-      console.error("Failed to update profile:", err);
+      const errorData = await response.json();
+      console.error("Failed to update profile:", errorData.message || errorData.error);
     }
   };
 

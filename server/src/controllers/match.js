@@ -17,11 +17,9 @@ class Matchplayer {
             const p1Score = result === 'win' ? 1 : result === 'draw' ? 0.5 : 0;
             const p2Score = 1 - p1Score;
     
-            // Update ratings
             p1.rating = calculateElo(p1.rating, p2.rating, p1Score);
             p2.rating = calculateElo(p2.rating, p1.rating, p2Score);
     
-            // Update match statistics
             p1.totalMatches += 1;
             p2.totalMatches += 1;
     
@@ -36,7 +34,6 @@ class Matchplayer {
                 p2.draws += 1;
             }
     
-            // Create and save the match
             const match = new Match({ 
                 player1, 
                 player2, 
@@ -46,14 +43,11 @@ class Matchplayer {
             });
             await match.save();
     
-            // Add match to both players' history
             p1.matches.push(match._id);
             p2.matches.push(match._id);
     
-            // Save all changes
             await Promise.all([p1.save(), p2.save()]);
             
-            // Return populated match data
             const populatedMatch = await Match.findById(match._id)
                 .populate('player1', 'name rating')
                 .populate('player2', 'name rating');
@@ -214,14 +208,12 @@ class Matchplayer {
                 return res.status(404).json({ error: 'Player not found' });
             }
 
-            console.log(`Player ${player.name} searching for match`); // Add logging
+            console.log(`Player ${player.name} searching for match`); 
 
-            // Update player's searching status
             player.isSearchingMatch = true;
             player.lastSearchStarted = new Date();
             await player.save();
 
-            // Find suitable opponent who is also searching
             const opponent = await Player.findOne({
                 _id: { $ne: playerId },
                 isSearchingMatch: true,

@@ -19,9 +19,6 @@ const AddMatch = () => {
   const [selectedTime, setSelectedTime] = useState(5);
   const navigate = useNavigate();
 
-
-  
-  // Socket reference to prevent recreating on every render
   const socketRef = useRef(null);
 
   const setupSocket = () => {
