@@ -121,18 +121,6 @@ const Profile = () => {
     fetchUserData();
   }, []);
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setSelectedFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewUrl(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const handleEditChange = (e) => {
     const { name, value } = e.target;
     setEditForm(prev => ({
