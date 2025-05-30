@@ -1,10 +1,7 @@
 import Header from '../components/Header';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement } from 'chart.js';
-import { Pie, Line } from 'react-chartjs-2';
-
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement);
+import countryCodes from 'country-code-emoji';
 
 const predefinedAvatars = [
   '/avatar1.jpg',
@@ -24,9 +21,16 @@ const Profile = () => {
   const [previewUrl, setPreviewUrl] = useState('');
   const [editForm, setEditForm] = useState({
     name: '',
-    bio: ''
+    bio: '',
+    age: '',
+    country: '',
   });
   const navigate = useNavigate();
+
+  const getFlagEmoji = (countryCode) => {
+    return countryCode && countryCodes[countryCode]?.emoji || '🌍';
+  };
+  
  
 
   const calculateStreak = (matches, userId) => {
@@ -76,7 +80,9 @@ const Profile = () => {
         setUser(data);
         setEditForm({
           name: data.name || '',
-          bio: data.bio || ''
+          bio: data.bio || '',
+          age: data.age || '',
+          country: data.country || ''
         });
         
         if (data.matches) {
@@ -274,6 +280,37 @@ const Profile = () => {
                 >
                   {user?.bio || "No bio set. Click to edit..."}
                 </p>
+                <div className="flex flex-wrap gap-4 text-sm mb-4">
+                  {user?.age && (
+                    <div className="bg-gray-700/50 px-4 py-2 rounded-lg flex items-center">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 mr-2 text-amber-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <span className="text-white">{user.age} years</span>
+                    </div>
+                  )}
+                  {user?.country && (
+                    <div className="bg-gray-700/50 px-4 py-2 rounded-lg flex items-center">
+                      <span className="text-xl mr-2">
+                        {getFlagEmoji(user.country)}
+                      </span>
+                      <span className="text-white">
+                        {countryCodes[user.country]?.name || user.country}
+                      </span>
+                    </div>
+                  )}
+                </div>
                 <button
                   onClick={() => setShowEditModal(true)}
                   className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-white"
@@ -482,6 +519,7 @@ const Profile = () => {
                     />
                   </svg>
                 </div>
+
                 <h3 className="text-lg text-gray-300 mb-2">
                   No games played yet
                 </h3>
@@ -707,36 +745,51 @@ const Profile = () => {
 
             <div className="space-y-4">
               <div>
-                <label
-                  className="block text-gray-400 text-sm mb-2"
-                  htmlFor="name"
-                >
-                  Name
-                </label>
+                <label className="text-sm text-gray-300 mb-2 block">Name</label>
                 <input
-                  id="name"
                   name="name"
-                  type="text"
                   value={editForm.name}
                   onChange={handleEditChange}
-                  className="w-full bg-black rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-zinc-200"
+                  className="w-full bg-gray-800 rounded-lg px-4 py-2 text-gray-100"
                 />
               </div>
-
               <div>
-                <label
-                  className="block text-gray-400 text-sm mb-2"
-                  htmlFor="bio"
-                >
-                  Bio
+                <label className="text-sm text-gray-300 mb-2 block">Age</label>
+                <input
+                  type="number"
+                  name="age"
+                  value={editForm.age}
+                  onChange={handleEditChange}
+                  className="w-full bg-gray-800 rounded-lg px-4 py-2 text-gray-100"
+                  min="5"
+                  max="120"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-300 mb-2 block">
+                  Country
                 </label>
+                <select
+                  name="country"
+                  value={editForm.country}
+                  onChange={handleEditChange}
+                  className="w-full bg-gray-800 rounded-lg px-4 py-2 text-gray-100"
+                >
+                  <option value="">Select Country</option>
+                  {Object.entries(countryCodes).map(([code, name]) => (
+                    <option key={code} value={code}>
+                      {getFlagEmoji(code)} {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm text-gray-300 mb-2 block">Bio</label>
                 <textarea
-                  id="bio"
                   name="bio"
                   value={editForm.bio}
                   onChange={handleEditChange}
-                  rows="3"
-                  className="w-full bg-black rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-zinc-200"
+                  className="w-full bg-gray-800 rounded-lg px-4 py-2 text-gray-100 h-32"
                 />
               </div>
             </div>
