@@ -18,6 +18,11 @@ const PlayAI = () => {
   const [lastMove, setLastMove] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [gameStarted, setGameStarted] = useState(false);
+  const [hintMove, setHintMove] = useState(null);
+  const [showHint, setShowHint] = useState(false);
+  const [hintMessage, setHintMessage] = useState('');
+  const [hintFromSquare, setHintFromSquare] = useState(null);
+  const [hintToSquare, setHintToSquare] = useState(null);
 
   useEffect(() => {
     const newSocket = io('https://chess-ai-webs.onrender.com');
@@ -29,24 +34,34 @@ const PlayAI = () => {
 
     newSocket.on('ai_move_response', (response) => {
       console.log('Received AI response:', response);
-      if (response.success && response.move) {
-        const move = response.move;
-        const [fromSquare, toSquare] = move.match(/.{2}/g) || [];
-        if (fromSquare && toSquare) {
-          const fromCol = fromSquare.charCodeAt(0) - 97;
-          const fromRow = 8 - parseInt(fromSquare[1]);
-          const toCol = toSquare.charCodeAt(0) - 97;
-          const toRow = 8 - parseInt(toSquare[1]);
+      
+      if (response.success) {
+        if (response.ai_move && response.ai_move.uci) {
+          const move = response.ai_move.uci;
+          const [fromSquare, toSquare] = move.match(/.{2}/g) || [];
+          
+          if (fromSquare && toSquare) {
+            const fromCol = fromSquare.charCodeAt(0) - 97;
+            const fromRow = 8 - parseInt(fromSquare[1]);
+            const toCol = toSquare.charCodeAt(0) - 97;
+            const toRow = 8 - parseInt(toSquare[1]);
 
-          setBoard(prevBoard => {
-            const newBoard = prevBoard.map(row => [...row]);
-            newBoard[toRow][toCol] = newBoard[fromRow][fromCol];
-            newBoard[fromRow][fromCol] = '';
-            return newBoard;
-          });
-          setLastMove({ from: { row: fromRow, col: fromCol }, to: { row: toRow, col: toCol } });
-          setMoves(prevMoves => [...prevMoves, move]);
-          setCurrentPlayer('white');
+            setBoard(prevBoard => {
+              const newBoard = prevBoard.map(row => [...row]);
+              newBoard[toRow][toCol] = newBoard[fromRow][fromCol];
+              newBoard[fromRow][fromCol] = '';
+              return newBoard;
+            });
+            
+            setLastMove({ from: { row: fromRow, col: fromCol }, to: { row: toRow, col: toCol } });
+            setMoves(prevMoves => [...prevMoves, move]);
+            setCurrentPlayer('white');
+            setErrorMessage('');
+          }
+        }
+
+        if (response.human_suggestion && response.human_suggestion.uci) {
+          setHintMove(response.human_suggestion);
         }
       } else {
         setErrorMessage(response.error || 'AI failed to make a move');
@@ -63,6 +78,13 @@ const PlayAI = () => {
 
   const handleSquareClick = (row, col) => {
     if (currentPlayer !== 'white') return;
+
+    if (showHint) {
+      setShowHint(false);
+      setHintMessage('');
+      setHintFromSquare(null);
+      setHintToSquare(null);
+    }
 
     if (!selectedPiece) {
       const piece = board[row][col];
@@ -108,7 +130,51 @@ const PlayAI = () => {
     }
   };
 
+  const handleHintClick = () => {
+    if (!hintMove || currentPlayer !== "white") return;
+
+    const move = hintMove.uci;
+    const [fromSquare, toSquare] = move.match(/.{2}/g) || [];
+
+    console.log("Hint clicked:", { move, fromSquare, toSquare, hintMove });
+
+    if (fromSquare && toSquare) {
+      const fromCol = fromSquare.charCodeAt(0) - 97;
+      const fromRow = 8 - parseInt(fromSquare[1]);
+      const toCol = toSquare.charCodeAt(0) - 97;
+      const toRow = 8 - parseInt(toSquare[1]);
+
+      console.log("Hint coordinates:", { fromRow, fromCol, toRow, toCol });
+
+      setHintFromSquare({ row: fromRow, col: fromCol });
+      setHintToSquare({ row: toRow, col: toCol });
+
+      setShowHint(true);
+      setHintMessage(
+        `Suggested move: ${
+          hintMove.san
+        } (Move ${fromSquare.toUpperCase()} to ${toSquare.toUpperCase()})`
+      );
+
+      setTimeout(() => {
+        if (currentPlayer === "white") {
+          setShowHint(false);
+          setHintMessage("");
+          setHintFromSquare(null);
+          setHintToSquare(null);
+        }
+      }, 8000);
+    }
+  };
+
   const getDisplayBoard = () => board;
+
+  const getArrowRotation = (fromRow, fromCol, toRow, toCol) => {
+    const deltaRow = toRow - fromRow;
+    const deltaCol = toCol - fromCol;
+    const angle = Math.atan2(deltaRow, deltaCol) * (180 / Math.PI);
+    return angle;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 text-gray-900 pt-16">
@@ -124,6 +190,22 @@ const PlayAI = () => {
             >
               <Alert className="bg-red-100 text-red-800 border-red-300 shadow-md">
                 <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {hintMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="mb-4"
+            >
+              <Alert className="bg-blue-100 text-blue-800 border-blue-300 shadow-md">
+                <AlertDescription>💡 {hintMessage}</AlertDescription>
               </Alert>
             </motion.div>
           )}
@@ -186,7 +268,19 @@ const PlayAI = () => {
                   </div>
                 </div>
                 
-                <div className="pt-2">
+                <div className="pt-2 space-y-2">
+                  <Button 
+                    onClick={handleHintClick}
+                    disabled={currentPlayer !== 'white' || !hintMove || !gameStarted}
+                    className={`w-full ${
+                      showHint 
+                        ? 'bg-blue-600 hover:bg-blue-700' 
+                        : 'bg-yellow-600 hover:bg-yellow-700'
+                    } text-white shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed`}
+                  >
+                    {showHint ? '✨ Hint Active' : '💡 Get Hint'}
+                  </Button>
+                  
                   <Button 
                     onClick={() => {
                       setBoard(initialBoard);
@@ -197,12 +291,18 @@ const PlayAI = () => {
                       setGameStarted(false);
                       setGameId(`ai_game_${Date.now()}`);
                       setErrorMessage('');
+                      setHintMove(null);
+                      setShowHint(false);
+                      setHintMessage('');
+                      setHintFromSquare(null);
+                      setHintToSquare(null);
                     }}
                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md"
                   >
                     New Game
                   </Button>
                 </div>
+
               </div>
             </Card>
           </motion.div>
@@ -235,6 +335,13 @@ const PlayAI = () => {
                       const isSelected =
                         selectedPiece?.row === displayRowIndex &&
                         selectedPiece?.col === displayColIndex;
+                      
+                      const isHintFrom = 
+                        hintFromSquare?.row === displayRowIndex &&
+                        hintFromSquare?.col === displayColIndex;
+                      const isHintTo = 
+                        hintToSquare?.row === displayRowIndex &&
+                        hintToSquare?.col === displayColIndex;
 
                       return (
                         <motion.div
@@ -244,18 +351,38 @@ const PlayAI = () => {
                             aspect-square flex items-center justify-center relative
                             ${isLight ? "bg-[#f0d9b5]" : "bg-[#b58863]"}
                             ${isSelected ? "ring-2 ring-yellow-400 ring-offset-1 sm:ring-offset-2" : ""}
-                            ${(isLastMoveFrom || isLastMoveTo) ? "bg-[#f7f769]" : ""}
-                            cursor-pointer
+                            ${isHintFrom && showHint ? "bg-green-400 ring-4 ring-green-600" : ""}
+                            ${isHintTo && showHint ? "bg-pink-400 ring-4 ring-pink-600" : ""}
+                            ${(isLastMoveFrom || isLastMoveTo) && !showHint ? "bg-[#f7f769]" : ""}
+                            cursor-pointer transition-all duration-300
                           `}
                           whileHover={{ scale: 1.05 }}
                           transition={{ duration: 0.1 }}
                         >
+                          {isHintFrom && showHint && (
+                            <div className="absolute inset-0 bg-green-500 opacity-70 flex items-center justify-center">
+                              <span className="text-white text-sm font-bold bg-green-700 px-2 py-1 rounded">FROM</span>
+                            </div>
+                          )}
+                          
+                          {isHintTo && showHint && (
+                            <div className="absolute inset-0 bg-pink-500 opacity-70 flex items-center justify-center">
+                              <span className="text-white text-sm font-bold bg-pink-700 px-2 py-1 rounded">TO</span>
+                            </div>
+                          )}
+
+                          {isHintFrom && showHint && (
+                            <div className="absolute top-1 right-1 text-2xl">
+                              ➤
+                            </div>
+                          )}
+
                           {piece && (
                             <motion.span
                               key={`${displayRowIndex}-${displayColIndex}-${piece}`}
                               initial={{ scale: 0.8, opacity: 0 }}
                               animate={{ 
-                                scale: isSelected ? 1.1 : 1,
+                                scale: isSelected ? 1.1 : (isHintFrom && showHint ? 1.2 : 1),
                                 opacity: 1
                               }}
                               transition={{ 
@@ -264,7 +391,7 @@ const PlayAI = () => {
                                 damping: 15
                               }}
                               className={`
-                                text-3xl sm:text-4xl md:text-5xl
+                                text-3xl sm:text-4xl md:text-5xl z-20 relative
                                 ${
                                   getPieceColor(piece) === "white"
                                     ? "text-white drop-shadow-lg"
@@ -275,8 +402,9 @@ const PlayAI = () => {
                               {getPieceSymbol(piece)}
                             </motion.span>
                           )}
+                          
                           {/* Coordinates for debugging */}
-                          <span className="absolute bottom-0 right-0 text-xs opacity-30">
+                          <span className="absolute bottom-0 right-0 text-xs opacity-30 z-10">
                             {String.fromCharCode(97 + displayColIndex)}{8 - displayRowIndex}
                           </span>
                         </motion.div>
