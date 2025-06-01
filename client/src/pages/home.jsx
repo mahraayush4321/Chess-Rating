@@ -11,11 +11,11 @@ const AddMatch = () => {
   const [suitableOpponents, setSuitableOpponents] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedOpponent, setSelectedOpponent] = useState(null);
-  const [matchStatus, setMatchStatus] = useState('idle'); // idle, searching, matched
+  const [matchStatus, setMatchStatus] = useState('idle'); 
   const [matchDetails, setMatchDetails] = useState(null);
   const [error, setError] = useState(null);
-  const [playerReady, setPlayerReady] = useState(false); // Track if this player is ready
-  const [waitingForOpponent, setWaitingForOpponent] = useState(false); // Track if waiting for opponent
+  const [playerReady, setPlayerReady] = useState(false); 
+  const [waitingForOpponent, setWaitingForOpponent] = useState(false); 
   const [selectedTime, setSelectedTime] = useState(5);
   const navigate = useNavigate();
 
@@ -37,7 +37,7 @@ const AddMatch = () => {
 
   const TimeOptions = () => (
     <div className="flex justify-center gap-4 mb-6">
-      {[5, 10, 15].map(time => (
+      {[5].map(time => (
         <button
           key={time}
           onClick={() => setSelectedTime(time)}
@@ -59,16 +59,15 @@ const AddMatch = () => {
       try {
         const user = JSON.parse(storedUser);
         setCurrentUser(user);
-        fetchSuitableOpponents(user._id);
+     // fetchSuitableOpponents(user._id);
       } catch (err) {
         console.error("Failed to parse user:", err);
       }
     }
 
-    // Initialize socket connection
     setupSocket();
 
-    // Add socket event listeners
+    
     if (socketRef.current) {
       socketRef.current.on('connect', () => {
         console.log('Connected to matchmaking server');
@@ -80,12 +79,8 @@ const AddMatch = () => {
         setMatchStatus('matched');
         setIsSearching(false);
         
-        // Use the timeControl from the server response instead of the local state
-        const timeControlFromServer = details.timeControl || selectedTime * 60;
-        console.log('Using time control from server:', timeControlFromServer);
-        
-        // Include timeControl in the URL
-        navigate(`/play?matchId=${details.matchId}&roomId=${details.roomId}&timeControl=${timeControlFromServer}`);
+   
+        navigate(`/play?matchId=${details.matchId}&roomId=${details.roomId}&timeControl=${selectedTime*60}`);
       });
 
       socketRef.current.on("matchmaking", (data) => {
@@ -99,13 +94,10 @@ const AddMatch = () => {
         }
       });
 
-      // Fix the syntax error in the matchEnded event listener
             socketRef.current.on('matchEnded', (data) => {
               console.log('Match ended with data:', data);
               
-              // If we want to update the UI with the match result
               if (currentUser) {
-                // Refresh player data to get updated matches
                 fetchPlayerData(currentUser._id);
               }
             });
@@ -150,11 +142,9 @@ const AddMatch = () => {
       const data = await response.json();
       
       if (data) {
-        // Update local storage with fresh player data
         localStorage.setItem('user', JSON.stringify(data));
         setCurrentUser(data);
         
-        // Log to verify matches are populated
         console.log('Updated player data:', data);
         console.log('Player matches:', data.matches ? data.matches.length : 0);
       }
@@ -163,18 +153,18 @@ const AddMatch = () => {
     }
   };
 
-  const fetchSuitableOpponents = async (userId) => {
-    try {
-      const response = await fetch(`https://chess-rating.onrender.com/api/v1/findSuitableOpponents/${userId}`);
-      const data = await response.json();
+  // const fetchSuitableOpponents = async (userId) => {
+  //   try {
+  //     const response = await fetch(`https://chess-rating.onrender.com/api/v1/findSuitableOpponents/${userId}`);
+  //     const data = await response.json();
       
-      if (data.suitableOpponents) {
-        setSuitableOpponents(data.suitableOpponents);
-      }
-    } catch (err) {
-      console.error("Failed to fetch opponents:", err);
-    }
-  };
+  //     if (data.suitableOpponents) {
+  //       setSuitableOpponents(data.suitableOpponents);
+  //     }
+  //   } catch (err) {
+  //     console.error("Failed to fetch opponents:", err);
+  //   }
+  // };
 
   const findMatch = () => {
     if (!currentUser || !socketRef.current) return;
@@ -191,7 +181,6 @@ const AddMatch = () => {
   const cancelMatchSearch = () => {
     if (!socketRef.current) return;
     
-    // Emit cancelMatchmaking event to server
     socketRef.current.emit('cancelMatchmaking');
     setIsSearching(false);
   };
@@ -204,7 +193,6 @@ const AddMatch = () => {
         playerId: currentUser._id
       });
       
-      // Update UI to show waiting for opponent
       setPlayerReady(true);
       setWaitingForOpponent(true);
     }
@@ -215,9 +203,7 @@ const AddMatch = () => {
     <Header />
     <div className="min-h-screen bg-black text-white">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        {/* Main chess board and play options */}
         <div className="flex flex-col lg:flex-row items-center justify-center gap-8 py-8 md:py-12">
-          {/* Chess Board - Responsive sizing */}
           <div className="w-full max-w-md lg:max-w-2xl">
             <img 
               src={Board} 
@@ -226,20 +212,18 @@ const AddMatch = () => {
             />
           </div>
           
-          {/* Play Options */}
           <div className="w-full max-w-md flex flex-col space-y-6 md:space-y-8">
             <div className="text-center">
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 md:mb-6 bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
                 Play Chess Online
               </h1>
               <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-zinc-300">
-                on the #1 Chess Site!
+                on the Best Quick Chess Site!
               </h2>
             </div>
             
             <TimeOptions />
             
-            {/* Play buttons */}
             {matchStatus !== 'matched' ? (
               <button
                 onClick={findMatch}
