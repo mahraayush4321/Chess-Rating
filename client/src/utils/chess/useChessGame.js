@@ -81,6 +81,7 @@ export const useChessGame = () => {
   const [analysisData, setAnalysisData] = useState(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const timerIntervalRef = useRef(null);
 
   useEffect(() => {
     (async() => {
@@ -147,13 +148,30 @@ export const useChessGame = () => {
     }
   }, [matchDetails]);
 
-  useEffect(() => {
+   useEffect(() => {
+    if (gameOver) {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    }
+  }, [gameOver]); 
+
+   useEffect(() => {
+    
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+
+    
     if (bothPlayersReady && !gameOver) {
       const interval = setInterval(() => {
         if (currentPlayer === 'white') {
           setWhiteTime(prev => {
             if (prev <= 0) {
               clearInterval(interval);
+              timerIntervalRef.current = null;
               handleTimeOut('white');
               return 0;
             }
@@ -163,6 +181,7 @@ export const useChessGame = () => {
           setBlackTime(prev => {
             if (prev <= 0) {
               clearInterval(interval);
+              timerIntervalRef.current = null;
               handleTimeOut('black');
               return 0;
             }
@@ -171,18 +190,27 @@ export const useChessGame = () => {
         }
       }, 1000);
   
-      setTimerInterval(interval);
-      return () => clearInterval(interval);
+      timerIntervalRef.current = interval;
     }
-  }, [currentPlayer, bothPlayersReady, gameOver]);
 
-  useEffect(() => {
+    
     return () => {
-      if (timerInterval) {
-        clearInterval(timerInterval);
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
       }
     };
-  }, [timerInterval]);
+  }, [currentPlayer, bothPlayersReady, gameOver]);
+
+  
+  useEffect(() => {
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -236,7 +264,7 @@ export const useChessGame = () => {
       console.log('Opponent move received:', data);
       handleOpponentMove(data.from, data.to);
       
-      // Show turn alert when it's player's turn
+   
       if (bothPlayersReady && !gameOver) {
         setShowTurnAlert(true);
         setTimeout(() => setShowTurnAlert(false), 3000);
@@ -255,7 +283,7 @@ export const useChessGame = () => {
         setWinner(data.winner === currentUser._id ? playerColor : (playerColor === 'white' ? 'black' : 'white'));
       }
       
-      // Update local state with new ratings if needed
+     
       if (data.player1 && data.player2) {
         const currentUser = JSON.parse(localStorage.getItem('user'));
         const isPlayer1 = data.player1.id === currentUser._id;
@@ -316,7 +344,7 @@ export const useChessGame = () => {
     };
   }, [location.search, navigate]);
 
-  // Delayed timer start effect
+  
   useEffect(() => {
     if (bothPlayersReady && !gameOver) {
       const startDelay = setTimeout(() => {
@@ -354,7 +382,7 @@ export const useChessGame = () => {
     }
   }, [currentPlayer, bothPlayersReady, gameOver]);
 
-  // Handle timeout logic
+  
   const handleTimeOut = (color) => {
     if (!bothPlayersReady) return;
     
@@ -374,7 +402,7 @@ export const useChessGame = () => {
     }
   };
 
-  // Start searching for a match
+ 
   const startSearching = () => {
     if (!socket) return;
     
@@ -388,14 +416,14 @@ export const useChessGame = () => {
     setIsSearching(true);
   };
   
-  // Cancel match search
+  
   const cancelSearching = () => {
     if (!socket) return;
     socket.emit('cancelMatchmaking');
     setIsSearching(false);
   };
   
-  // Mark player as ready to start the game
+  
   const markPlayerReady = () => {
     if (!socket || !matchDetails) return;
     
@@ -409,7 +437,7 @@ export const useChessGame = () => {
     setIsPlayerReady(true);
   };
 
-  // Handle player resigning from match
+  
   const handleResign = () => {
     if (!socket || !matchDetails || gameOver) return;
     
@@ -428,14 +456,14 @@ export const useChessGame = () => {
     });
   };
   
-  // Handle opponent's move
+ 
   const handleOpponentMove = (from, to) => {
     setBoard(prevBoard => {
       const newBoard = prevBoard.map(row => [...row]);
       const piece = newBoard[from.row][from.col];
       const capturedPiece = newBoard[to.row][to.col];
       
-      // Record the move in algebraic notation
+      
       const moveNotation = convertToAlgebraicNotation(from, to, piece, prevBoard, capturedPiece);
       setMoveHistory(prev => [...prev, moveNotation]);
       
@@ -453,12 +481,12 @@ export const useChessGame = () => {
     setCurrentPlayer(prev => prev === 'white' ? 'black' : 'white');
   };
   
-  // Check if king is under attack
+  
   const isKingUnderAttack = (boardState, kingColor) => {
     let kingRow, kingCol;
     const kingPiece = kingColor === 'white' ? 'wk' : 'bk';
     
-    // Find king position
+    
     for (let i = 0; i < 8; i++) {
       for (let j = 0; j < 8; j++) {
         if (boardState[i][j] === kingPiece) {
@@ -469,7 +497,7 @@ export const useChessGame = () => {
       }
     }
     
-    // Check if any opponent piece can attack king
+    
     for (let i = 0; i < 8; i++) {
       for (let j = 0; j < 8; j++) {
         const piece = boardState[i][j];
@@ -483,7 +511,7 @@ export const useChessGame = () => {
     return false;
   };
   
-  // Handle clicking on a square
+  
   const handleSquareClick = (row, col) => {
     if (gameOver || currentPlayer !== playerColor || !bothPlayersReady) return;
     
@@ -491,13 +519,13 @@ export const useChessGame = () => {
     const pieceColor = getPieceColor(piece);
     setErrorMessage("");
     
-    // Select piece
+    
     if (!selectedPiece && pieceColor === currentPlayer) {
       setSelectedPiece({ row, col, piece });
       return;
     }
     
-    // Invalid selection - not your piece
+    
     if (!selectedPiece && pieceColor !== currentPlayer) {
       if (piece) {
         setErrorMessage(`It's ${currentPlayer}'s turn to play`);
@@ -505,27 +533,27 @@ export const useChessGame = () => {
       return;
     }
     
-    // Deselect the same piece
+   
     if (selectedPiece && row === selectedPiece.row && col === selectedPiece.col) {
       setSelectedPiece(null);
       setLastMove(null);
       return;
     }
     
-    // Switch selection to another piece
+   
     if (selectedPiece && pieceColor === currentPlayer) {
       setSelectedPiece({ row, col, piece });
       setLastMove(null);
       return;
     }
     
-    // Try to move the selected piece
+    
     if (selectedPiece) {
       if (isValidMove(board, selectedPiece.row, selectedPiece.col, row, col, currentPlayer)) {
         const newBoard = [...board.map(row => [...row])];
         const capturedPiece = newBoard[row][col];
 
-        // Record move in algebraic notation
+    
         const moveNotation = convertToAlgebraicNotation(
           { row: selectedPiece.row, col: selectedPiece.col },
           { row, col },
@@ -539,18 +567,16 @@ export const useChessGame = () => {
           return newHistory;
         });
         
-        // Update the board
+       
         newBoard[row][col] = selectedPiece.piece;
         newBoard[selectedPiece.row][selectedPiece.col] = '';
         
-        // Check if the move would put your own king in check
         if (isKingUnderAttack(newBoard, currentPlayer)) {
           setErrorMessage("Invalid move: This would put your king in check!");
           setSelectedPiece(null);
           return;
         }
         
-        // Send move to server
         if (socket && matchDetails) {
           socket.emit('chessMove', {
             roomId: matchDetails.roomId,
@@ -559,7 +585,7 @@ export const useChessGame = () => {
           });
         }
         
-        // Check if the move captures the opponent's king (game over)
+      
         if (capturedPiece === 'wk' || capturedPiece === 'bk') {
           setGameOver(true);
           setWinner(currentPlayer);
@@ -583,7 +609,7 @@ export const useChessGame = () => {
           to: { row, col }
         });
         
-        // Check if the opponent's king is in check
+        
         const oppositeColor = currentPlayer === 'white' ? 'black' : 'white';
         const isCheck = isKingUnderAttack(newBoard, oppositeColor);
         setIsKingInCheck(isCheck);
@@ -593,7 +619,7 @@ export const useChessGame = () => {
         
         setCurrentPlayer(currentPlayer === 'white' ? 'black' : 'white');
       } else {
-        // Invalid move
+    
         const pieceType = selectedPiece.piece[1];
         let message = "Invalid move for ";
         switch(pieceType) {
@@ -611,7 +637,7 @@ export const useChessGame = () => {
     }
   };
   
-  // Reset the game state
+  
   const resetGame = () => {
     setBoard(initialBoard);
     setSelectedPiece(null);
@@ -624,7 +650,7 @@ export const useChessGame = () => {
     setMoveHistory([]);
   };
 
-  // Get board that's correctly oriented for the current player
+ 
   const getDisplayBoard = () => {
     if (playerColor === 'black') {
       return [...board].reverse().map(row => [...row].reverse());
@@ -633,7 +659,7 @@ export const useChessGame = () => {
   };
 
   return {
-    // Game state
+    
     board,
     currentPlayer,
     playerColor,
@@ -643,32 +669,27 @@ export const useChessGame = () => {
     winner,
     errorMessage,
     isKingInCheck,
-    
-    // Match state
+
     matchDetails,
     opponentInfo,
     isPlayerReady,
     bothPlayersReady,
     isSearching,
     
-    // Timers
     whiteTime,
     blackTime,
     
-    // UI state
     showTurnAlert,
     analysisData,
     showAnalysis,
     activeTab,
     moveHistory,
     
-    // Utility functions
     formatTime,
     getDisplayBoard,
     getPieceSymbol,
     getPieceColor,
-    
-    // Actions
+  
     setActiveTab,
     handleSquareClick,
     startSearching,
