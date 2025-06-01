@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { initialBoard, getPieceSymbol, getPieceColor, isValidMove } from '../chess';
 import io from 'socket.io-client';
@@ -81,7 +81,6 @@ export const useChessGame = () => {
   const [analysisData, setAnalysisData] = useState(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
-  const timerIntervalRef = useRef(null);
 
   useEffect(() => {
     (async() => {
@@ -148,30 +147,13 @@ export const useChessGame = () => {
     }
   }, [matchDetails]);
 
-   useEffect(() => {
-    if (gameOver) {
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-        timerIntervalRef.current = null;
-      }
-    }
-  }, [gameOver]); 
-
-   useEffect(() => {
-    
-    if (timerIntervalRef.current) {
-      clearInterval(timerIntervalRef.current);
-      timerIntervalRef.current = null;
-    }
-
-    
+  useEffect(() => {
     if (bothPlayersReady && !gameOver) {
       const interval = setInterval(() => {
         if (currentPlayer === 'white') {
           setWhiteTime(prev => {
             if (prev <= 0) {
               clearInterval(interval);
-              timerIntervalRef.current = null;
               handleTimeOut('white');
               return 0;
             }
@@ -181,7 +163,6 @@ export const useChessGame = () => {
           setBlackTime(prev => {
             if (prev <= 0) {
               clearInterval(interval);
-              timerIntervalRef.current = null;
               handleTimeOut('black');
               return 0;
             }
@@ -190,27 +171,18 @@ export const useChessGame = () => {
         }
       }, 1000);
   
-      timerIntervalRef.current = interval;
+      setTimerInterval(interval);
+      return () => clearInterval(interval);
     }
-
-    
-    return () => {
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-        timerIntervalRef.current = null;
-      }
-    };
   }, [currentPlayer, bothPlayersReady, gameOver]);
 
-  
   useEffect(() => {
     return () => {
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-        timerIntervalRef.current = null;
+      if (timerInterval) {
+        clearInterval(timerInterval);
       }
     };
-  }, []);
+  }, [timerInterval]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -264,7 +236,7 @@ export const useChessGame = () => {
       console.log('Opponent move received:', data);
       handleOpponentMove(data.from, data.to);
       
-   
+      
       if (bothPlayersReady && !gameOver) {
         setShowTurnAlert(true);
         setTimeout(() => setShowTurnAlert(false), 3000);
@@ -283,7 +255,6 @@ export const useChessGame = () => {
         setWinner(data.winner === currentUser._id ? playerColor : (playerColor === 'white' ? 'black' : 'white'));
       }
       
-     
       if (data.player1 && data.player2) {
         const currentUser = JSON.parse(localStorage.getItem('user'));
         const isPlayer1 = data.player1.id === currentUser._id;
@@ -344,7 +315,6 @@ export const useChessGame = () => {
     };
   }, [location.search, navigate]);
 
-  
   useEffect(() => {
     if (bothPlayersReady && !gameOver) {
       const startDelay = setTimeout(() => {
@@ -382,7 +352,6 @@ export const useChessGame = () => {
     }
   }, [currentPlayer, bothPlayersReady, gameOver]);
 
-  
   const handleTimeOut = (color) => {
     if (!bothPlayersReady) return;
     
@@ -401,8 +370,7 @@ export const useChessGame = () => {
       });
     }
   };
-
- 
+  
   const startSearching = () => {
     if (!socket) return;
     
@@ -416,13 +384,11 @@ export const useChessGame = () => {
     setIsSearching(true);
   };
   
-  
   const cancelSearching = () => {
     if (!socket) return;
     socket.emit('cancelMatchmaking');
     setIsSearching(false);
   };
-  
   
   const markPlayerReady = () => {
     if (!socket || !matchDetails) return;
@@ -437,7 +403,6 @@ export const useChessGame = () => {
     setIsPlayerReady(true);
   };
 
-  
   const handleResign = () => {
     if (!socket || !matchDetails || gameOver) return;
     
@@ -456,14 +421,12 @@ export const useChessGame = () => {
     });
   };
   
- 
   const handleOpponentMove = (from, to) => {
     setBoard(prevBoard => {
       const newBoard = prevBoard.map(row => [...row]);
       const piece = newBoard[from.row][from.col];
       const capturedPiece = newBoard[to.row][to.col];
-      
-      
+
       const moveNotation = convertToAlgebraicNotation(from, to, piece, prevBoard, capturedPiece);
       setMoveHistory(prev => [...prev, moveNotation]);
       
@@ -480,13 +443,11 @@ export const useChessGame = () => {
     setLastMove({ from, to });
     setCurrentPlayer(prev => prev === 'white' ? 'black' : 'white');
   };
-  
-  
+
   const isKingUnderAttack = (boardState, kingColor) => {
     let kingRow, kingCol;
     const kingPiece = kingColor === 'white' ? 'wk' : 'bk';
-    
-    
+
     for (let i = 0; i < 8; i++) {
       for (let j = 0; j < 8; j++) {
         if (boardState[i][j] === kingPiece) {
@@ -496,8 +457,7 @@ export const useChessGame = () => {
         }
       }
     }
-    
-    
+
     for (let i = 0; i < 8; i++) {
       for (let j = 0; j < 8; j++) {
         const piece = boardState[i][j];
@@ -511,21 +471,18 @@ export const useChessGame = () => {
     return false;
   };
   
-  
   const handleSquareClick = (row, col) => {
     if (gameOver || currentPlayer !== playerColor || !bothPlayersReady) return;
     
     const piece = board[row][col];
     const pieceColor = getPieceColor(piece);
     setErrorMessage("");
-    
-    
+ 
     if (!selectedPiece && pieceColor === currentPlayer) {
       setSelectedPiece({ row, col, piece });
       return;
     }
-    
-    
+
     if (!selectedPiece && pieceColor !== currentPlayer) {
       if (piece) {
         setErrorMessage(`It's ${currentPlayer}'s turn to play`);
@@ -533,13 +490,11 @@ export const useChessGame = () => {
       return;
     }
     
-   
     if (selectedPiece && row === selectedPiece.row && col === selectedPiece.col) {
       setSelectedPiece(null);
       setLastMove(null);
       return;
     }
-    
    
     if (selectedPiece && pieceColor === currentPlayer) {
       setSelectedPiece({ row, col, piece });
@@ -547,13 +502,11 @@ export const useChessGame = () => {
       return;
     }
     
-    
     if (selectedPiece) {
       if (isValidMove(board, selectedPiece.row, selectedPiece.col, row, col, currentPlayer)) {
         const newBoard = [...board.map(row => [...row])];
         const capturedPiece = newBoard[row][col];
 
-    
         const moveNotation = convertToAlgebraicNotation(
           { row: selectedPiece.row, col: selectedPiece.col },
           { row, col },
@@ -567,7 +520,6 @@ export const useChessGame = () => {
           return newHistory;
         });
         
-       
         newBoard[row][col] = selectedPiece.piece;
         newBoard[selectedPiece.row][selectedPiece.col] = '';
         
@@ -585,7 +537,6 @@ export const useChessGame = () => {
           });
         }
         
-      
         if (capturedPiece === 'wk' || capturedPiece === 'bk') {
           setGameOver(true);
           setWinner(currentPlayer);
@@ -609,7 +560,6 @@ export const useChessGame = () => {
           to: { row, col }
         });
         
-        
         const oppositeColor = currentPlayer === 'white' ? 'black' : 'white';
         const isCheck = isKingUnderAttack(newBoard, oppositeColor);
         setIsKingInCheck(isCheck);
@@ -619,7 +569,7 @@ export const useChessGame = () => {
         
         setCurrentPlayer(currentPlayer === 'white' ? 'black' : 'white');
       } else {
-    
+ 
         const pieceType = selectedPiece.piece[1];
         let message = "Invalid move for ";
         switch(pieceType) {
@@ -637,7 +587,7 @@ export const useChessGame = () => {
     }
   };
   
-  
+
   const resetGame = () => {
     setBoard(initialBoard);
     setSelectedPiece(null);
@@ -650,7 +600,6 @@ export const useChessGame = () => {
     setMoveHistory([]);
   };
 
- 
   const getDisplayBoard = () => {
     if (playerColor === 'black') {
       return [...board].reverse().map(row => [...row].reverse());
@@ -659,7 +608,7 @@ export const useChessGame = () => {
   };
 
   return {
-    
+
     board,
     currentPlayer,
     playerColor,
@@ -669,7 +618,7 @@ export const useChessGame = () => {
     winner,
     errorMessage,
     isKingInCheck,
-
+    
     matchDetails,
     opponentInfo,
     isPlayerReady,
@@ -689,7 +638,7 @@ export const useChessGame = () => {
     getDisplayBoard,
     getPieceSymbol,
     getPieceColor,
-  
+    
     setActiveTab,
     handleSquareClick,
     startSearching,
