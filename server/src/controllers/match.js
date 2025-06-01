@@ -224,9 +224,8 @@ class Matchplayer {
             }).sort({ lastSearchStarted: 1 });
 
             if (opponent) {
-                console.log(`Match found between ${player.name} and ${opponent.name}`); // Add logging
+                console.log(`Match found between ${player.name} and ${opponent.name}`); 
                 
-                // Create match and update both players
                 const match = new Match({
                     player1: playerId,
                     player2: opponent._id,
@@ -235,8 +234,6 @@ class Matchplayer {
                     matchType: 'ranked'
                 });
                 await match.save();
-
-                // Reset searching status for both players
                 player.isSearchingMatch = false;
                 opponent.isSearchingMatch = false;
                 await Promise.all([player.save(), opponent.save()]);
@@ -252,12 +249,11 @@ class Matchplayer {
                 });
             }
 
-            // No immediate match found
             return res.status(200).json({
                 status: 'searching'
             });
         } catch (error) {
-            console.error('Error in findMatch:', error); // Add logging
+            console.error('Error in findMatch:', error); 
             res.status(500).json({ error: error.message });
         }
     };
@@ -281,7 +277,7 @@ class Matchplayer {
 
             res.status(200).json({ message: 'Search cancelled' });
         } catch (error) {
-            console.error('Error in cancelMatchSearch:', error); // Add logging
+            console.error('Error in cancelMatchSearch:', error); 
             res.status(500).json({ error: error.message });
         }
     };
@@ -298,16 +294,16 @@ class Matchplayer {
                 return res.status(404).json({ error: 'Match not found' });
             }
 
-            // Verify the player is part of this match
+            
             if (match.player1.toString() !== playerId && match.player2.toString() !== playerId) {
                 return res.status(403).json({ error: 'Player is not part of this match' });
             }
 
-            // Update match status
+            
             match.status = 'accepted';
             await match.save();
 
-            // Get opponent details
+            
             const opponentId = match.player1.toString() === playerId ? match.player2 : match.player1;
             const opponent = await Player.findById(opponentId);
 
@@ -348,13 +344,13 @@ class Matchplayer {
                 return res.status(404).json({ message: 'Player not found' });
             }
     
-            // Transform matches data to be more user-friendly
+            
             const matchHistory = player.matches.map(match => {
                 const isPlayer1 = match.player1._id.toString() === id;
                 const opponent = isPlayer1 ? match.player2 : match.player1;
                 let result = match.result;
                 
-                // Translate result from match perspective to player perspective
+                
                 if (result === 'win' && !isPlayer1) {
                     result = 'loss';
                 } else if (result === 'loss' && !isPlayer1) {
