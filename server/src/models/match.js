@@ -1,5 +1,24 @@
+/**
+ * @fileoverview This file defines the Mongoose schema for a match.
+ * @module server/src/models/match
+ */
+
 const mongoose = require('mongoose');
 
+/**
+ * @description Mongoose schema for a match.
+ * @property {mongoose.Schema.Types.ObjectId} player1 - The ID of the first player.
+ * @property {mongoose.Schema.Types.ObjectId} player2 - The ID of the second player.
+ * @property {string} result - The result of the match ('win', 'loss', 'draw', 'ongoing').
+ * @property {Date} datePlayed - The date the match was played.
+ * @property {string} matchType - The type of match ('ranked', 'casual').
+ * @property {string} status - The status of the match ('pending', 'accepted', 'rejected', 'completed').
+ * @property {number} timeControl - The time control for the match in seconds.
+ * @property {number} duration - The duration of the match in seconds.
+ * @property {Date} startTime - The start time of the match.
+ * @property {Date} endTime - The end time of the match.
+ * @property {Array<object>} moves - An array of moves made during the match.
+ */
 const matchSchema = new mongoose.Schema({
     player1: {
         type: mongoose.Schema.Types.ObjectId,
@@ -58,6 +77,9 @@ const matchSchema = new mongoose.Schema({
     }]
 });
 
+/**
+ * @description A pre-save hook to calculate the duration of the match.
+ */
 matchSchema.pre('save', function(next) {
     if (this.startTime && this.endTime) {
         this.duration = Math.floor((this.endTime - this.startTime) / 1000);

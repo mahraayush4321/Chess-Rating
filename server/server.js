@@ -1,3 +1,10 @@
+/**
+ * @fileoverview This is the main entry point for the server.
+ * It creates an HTTP server, attaches the Express app, and sets up a Socket.IO server.
+ * It also handles graceful shutdown.
+ * @module server/server
+ */
+
 const express = require('express');
 const http = require('http');
 const app = require('./app');
@@ -8,6 +15,11 @@ const socketServer = require('./src/socket/matchmakingHandler');
 
 const httpServer = http.createServer(app);
 
+/**
+ * @description The Socket.IO server instance.
+ * Configured with CORS, ping timeout, and transports.
+ * @type {Server}
+ */
 const io = new Server(httpServer, {
     cors: {
         origin: [
@@ -36,6 +48,11 @@ httpServer.listen(PORT, ()=> {
 process.on("SIGTERM",shutDown);
 process.on("SIGINT", shutDown);
 
+/**
+ * @description Handles graceful shutdown of the server.
+ * Closes the HTTP server and exits the process.
+ * @function
+ */
 function shutDown() {
     console.log("received signal to shutdown");
     httpServer.close(() => {

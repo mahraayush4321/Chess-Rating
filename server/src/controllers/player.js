@@ -1,8 +1,23 @@
+/**
+ * @fileoverview This file contains the controller for player-related operations.
+ * @module server/src/controllers/player
+ */
+
 const playerModel = require('../models/players')
 const Response = require('../helpers/response');
 const HTTP_STATUS = require('../helpers/http-status');
 
+/**
+ * @class Player
+ * @description A class to handle player-related operations.
+ */
 class Player {
+    /**
+     * @description Retrieves all players, sorted by rating.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} A list of all players.
+     */
     getAllPlayers = async (req,res) => {
         try {
             const players = await playerModel.find().sort({ rating: -1 });
@@ -12,6 +27,12 @@ class Player {
         }
     }
 
+    /**
+     * @description Adds a new player.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} The newly created player object.
+     */
     addPlayer = async (req,res) => {
         try {
             const userId = req.user._id;
@@ -29,6 +50,12 @@ class Player {
         }
     }
 
+    /**
+     * @description Fetches the rating of a specific player.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} An object containing the player's name and rating.
+     */
     fetchPlayerRating = async (req,res) => {
         try {
             const {id} = req.params;   
@@ -43,6 +70,12 @@ class Player {
         }
     }
 
+    /**
+     * @description Retrieves a specific player's details.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} An object containing the player's details.
+     */
     getPlayer = async (req,res) => {
         try {
             const {id} = req.params;
@@ -63,6 +96,12 @@ class Player {
         }
     }
 
+    /**
+     * @description Updates a player's details.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} The updated player object.
+     */
     updatePlayer = async(req,res)  => {
         try {
            const {id} = req.params;
@@ -85,6 +124,12 @@ class Player {
         }
     }
 
+    /**
+     * @description Searches for players based on various criteria.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} A list of players that match the search criteria.
+     */
     searchPlayer = async(req,res) => {
         try {
             const {name, country, minRating, maxRating } = req.query;
@@ -101,6 +146,12 @@ class Player {
         }
     }
 
+    /**
+     * @description Retrieves the match history of a player.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} An object containing the player's match history.
+     */
     getPlayerMatchHistory = async (req,res) => {
         try {
             const { id } = req.params;
@@ -115,6 +166,12 @@ class Player {
         }
     }
 
+    /**
+     * @description Allows a player to follow another player.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} A success message.
+     */
     followPlayer = async (req,res) => {
         try {
             const { followerId, followingId } = req.body;
@@ -145,6 +202,12 @@ class Player {
         }
     }
 
+    /**
+     * @description Allows a player to unfollow another player.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} A success message.
+     */
     unfollowPlayer = async (req,res) => {
         try {
             const { followerId, followingId } = req.body;
@@ -166,6 +229,12 @@ class Player {
         }
     }
    
+    /**
+     * @description Retrieves a player by their ID, with populated match, follower, and following data.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} The player object.
+     */
     getPlayerById = async (req, res) => {
         try {
             const { id } = req.params;
@@ -198,4 +267,3 @@ class Player {
 }
 
 module.exports = new Player();
-

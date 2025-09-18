@@ -1,14 +1,37 @@
+/**
+ * @fileoverview This file handles the real-time matchmaking and gameplay logic using Socket.IO.
+ * @module server/src/socket/matchmakingHandler
+ */
 
 const Player = require('../models/players');
 const Match = require('../models/match');
 const { calculateElo } = require('../helpers/ratingAlgorithms');
 
+/**
+ * @description A map to store players who are currently in the matchmaking queue.
+ * The key is the player ID, and the value is an object containing socket ID, rating, name, join time, and time control.
+ * @type {Map<string, object>}
+ */
 const matchmakingQueue = new Map();
 
+/**
+ * @description A map to store players who are ready to start a match.
+ * The key is the match ID, and the value is a set of player IDs.
+ * @type {Map<string, Set<string>>}
+ */
 const readyPlayers = new Map();
 
+/**
+ * @description A map to store active games.
+ * The key is the match ID, and the value is an object containing the room ID, start time, and status.
+ * @type {Map<string, object>}
+ */
 const activeGames = new Map();
 
+/**
+ * @description Initializes the Socket.IO event handlers for matchmaking and gameplay.
+ * @param {object} io - The Socket.IO server instance.
+ */
 const initSocketHandlers = (io) => {
   console.log('Initializing socket handlers for matchmaking and chess game');
 
@@ -322,7 +345,12 @@ const initSocketHandlers = (io) => {
   });
 };
 
-
+/**
+ * @description Finds a suitable opponent for a player in the matchmaking queue.
+ * If a suitable opponent is found, a match is created and both players are notified.
+ * @param {object} socket - The socket of the player searching for a match.
+ * @param {object} player - The player object.
+ */
 async function findMatchForPlayer(socket, player) {
   const playerId = player._id.toString();
   const playerRating = player.rating;

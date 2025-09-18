@@ -1,13 +1,27 @@
+/**
+ * @fileoverview This file contains a cron job for periodically updating player ratings.
+ * The code is currently commented out and not in use.
+ * @module server/src/helpers/cronJob
+ */
+
 // const cron = require('node-cron');
 // const playerModel = require('../models/players');
 // const matchModel = require('../models/match');
 // const { calculateElo } = require('../helpers/ratingAlgorithms');
 
+/**
+ * @class CronJob
+ * @description A class to manage scheduled tasks.
+ */
 // class CronJob {
 //     constructor() {
 //         this.scheduleRatingUpdate();
 //     }
 
+    /**
+     * @description Schedules a cron job to update player ratings every 10 minutes.
+     * @function
+     */
 //     scheduleRatingUpdate() {
 //         cron.schedule('* */10 * * *', async () => {
 //             console.log('Running rating update cron job...');

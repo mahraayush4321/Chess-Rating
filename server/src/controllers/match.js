@@ -1,8 +1,23 @@
+/**
+ * @fileoverview This file contains the controller for match-related operations.
+ * @module server/src/controllers/match
+ */
+
 const Match = require('../models/match');
 const Player = require('../models/players');
 const { calculateElo } = require('../helpers/ratingAlgorithms');
 
-class Matchplayer {  
+/**
+ * @class Matchplayer
+ * @description A class to handle match-related operations.
+ */
+class Matchplayer {
+    /**
+     * @description Saves a match and updates player ratings.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} The saved match object.
+     */
     saveMatch = async (req,res) => {
         try {
             const { player1, player2, result, datePlayed } = req.body;
@@ -61,6 +76,12 @@ class Matchplayer {
         }
     }
 
+    /**
+     * @description Saves a game history record.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} A success message and the saved match.
+     */
     saveGameHistory = async (req,res) => {
         try {
             const { player1, player2, datePlayed, result } = req.body;
@@ -90,6 +111,12 @@ class Matchplayer {
         }
     };
 
+    /**
+     * @description Retrieves player statistics.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} An object containing player statistics.
+     */
     getPlayerStats = async (req, res) => {
         try {
             const { id } = req.params;
@@ -111,6 +138,12 @@ class Matchplayer {
         }
     };
 
+    /**
+     * @description Retrieves the leaderboard.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} An object containing the leaderboard.
+     */
     getLeaderBoard = async (req,res) => {
         try {
             const { page= 1, limit = 10} = req.query;
@@ -121,6 +154,12 @@ class Matchplayer {
         }
     }
     
+    /**
+     * @description Retrieves the top winning players.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} An object containing the top winning players.
+     */
     getTopWinningPlayers = async (req,res) => {
         try {
             const players = await Player.find();
@@ -160,6 +199,12 @@ class Matchplayer {
         }
     }
 
+    /**
+     * @description Finds suitable opponents for a player based on rating.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} An object containing suitable opponents.
+     */
      findSuitableOpponents = async (req, res) => {
         try {
             const { userId } = req.params;
@@ -194,6 +239,12 @@ class Matchplayer {
         }
     };    
 
+    /**
+     * @description Finds a match for a player.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} An object indicating the match status.
+     */
     findMatch = async (req, res) => {
         try {
             const { playerId } = req.body;
@@ -258,6 +309,12 @@ class Matchplayer {
         }
     };
 
+    /**
+     * @description Cancels a match search for a player.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} A success message.
+     */
     cancelMatchSearch = async (req, res) => {
         try {
             const { playerId } = req.body;
@@ -281,6 +338,13 @@ class Matchplayer {
             res.status(500).json({ error: error.message });
         }
     };
+
+    /**
+     * @description Accepts a match.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} A success message and the match object.
+     */
     acceptMatch = async (req, res) => {
         try {
             const { matchId, playerId } = req.body;
@@ -322,6 +386,12 @@ class Matchplayer {
         }
     };
 
+    /**
+     * @description Retrieves the match history for a player.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} An object containing the player's match history.
+     */
     getPlayerMatchHistory = async (req, res) => {
         try {
             const { id } = req.params;

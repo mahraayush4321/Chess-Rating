@@ -1,3 +1,8 @@
+/**
+ * @fileoverview This file contains the controller for user-related operations.
+ * @module server/src/controllers/users
+ */
+
 const express = require('express')
 const HTTP_STATUS = require('../helpers/http-status');
 const Response = require('../helpers/response');
@@ -5,7 +10,17 @@ const Model = require('../models/users');
 const Player = require('../models/players');
 const bcrypt = require('bcrypt');
 
+/**
+ * @class User
+ * @description A class to handle user-related operations.
+ */
 class User {
+    /**
+     * @description Creates a new user and a corresponding player profile.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} The newly created user object.
+     */
     createNewUser = async (req,res) => {
         const {firstName, lastName , email, password} = req.body;
         try {
@@ -46,6 +61,12 @@ class User {
         }
     }
 
+    /**
+     * @description Logs in a user.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} The user object (without password).
+     */
     loginUser = async (req,res) => {
         const {email, password} = req.body;
         try {
@@ -72,6 +93,12 @@ class User {
         }
     }
 
+    /**
+     * @description Retrieves all users.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} A list of all users and the total count.
+     */
     getAllUser = async (req, res) => {
         try {
             const users = await Model.find();
@@ -82,6 +109,12 @@ class User {
         }
     }
 
+    /**
+     * @description Retrieves a single user by ID.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} The user object.
+     */
     getSingleUser = async (req,res) => {
         try {
             const {userId} = req.params;
@@ -92,6 +125,12 @@ class User {
         }
     }
 
+    /**
+     * @description Deletes all users.
+     * @param {object} req - Express request object.
+     * @param {object} res - Express response object.
+     * @returns {object} A success message.
+     */
     deleteAllUsers = async (req,res) => {
         try {
             await Model.deleteMany({});
